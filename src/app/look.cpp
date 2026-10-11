@@ -386,3 +386,26 @@ IconLook itemIcon(const int item)
 }
 
 } // namespace wayfarer::app
+
+namespace wayfarer::app {
+MonsterScale monsterScale(const game::Archetype archetype, const float boxHeight, const bool elite)
+{
+    // Design units from the feet to the top of each creature (feet at +50 of 128).
+    float design = 84.0f;
+    switch (archetype) {
+    case game::Archetype::Bellcap: design = 84.0f; break;
+    case game::Archetype::Mochi: design = 57.0f; break;
+    case game::Archetype::Turbanshell: design = 61.0f; break;
+    case game::Archetype::Pudgy: design = 54.0f; break;
+    case game::Archetype::Stumpling: design = 68.0f; break;
+    case game::Archetype::Wisp: design = 66.0f; break;
+    case game::Archetype::Pebblet: design = 64.0f; break;
+    case game::Archetype::Flitter: design = 70.0f; break;
+    case game::Archetype::Count: break;
+    }
+    // The drawing stands a third taller than the box (its hitbox is forgiving).
+    const float drawn = boxHeight * 1.3f;
+    const float quad = drawn * 128.0f / design / (elite ? 1.3f : 1.0f);
+    return {.quad = quad, .top = drawn};
+}
+} // namespace wayfarer::app

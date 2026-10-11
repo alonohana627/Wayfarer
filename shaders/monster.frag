@@ -23,6 +23,51 @@ layout(location = 0) in vec2 inUv;
 layout(location = 0) out vec4 outColor;
 
 AnimeCanvas C;
+vec3 gIris;
+vec3 gEyeInk;
+float gTime;
+float gSeed;
+
+// The face kit's expressions for a monster mood, so creatures share the
+// hero's eyes: an almond white, a two-tone iris, a pupil, two highlights, a
+// lash line, blinking.
+AnimeFace moodFace(int mood)
+{
+    if (mood == kAnimeMoodHappy) {
+        return animeExpression(kAnimeHappy);
+    }
+    if (mood == kAnimeMoodAngry) {
+        return animeExpression(kAnimeAngry);
+    }
+    if (mood == kAnimeMoodHurt) {
+        return animeExpression(kAnimeHurt);
+    }
+    if (mood == kAnimeMoodKnocked) {
+        return animeExpression(kAnimeKnocked);
+    }
+    if (mood == kAnimeMoodSleepy) {
+        return animeExpression(kAnimeBlink);
+    }
+    return animeExpression(kAnimeNeutral);
+}
+
+// One eye of a creature: `size` is the old dot eye's half height.
+void critterEye(vec2 q, vec2 c, float size, int mood, float side)
+{
+    AnimeFace f = moodFace(mood);
+    if (f.eyeShape == kAnimeEyeOpen) {
+        f.open *= animeBlink(gTime, gSeed);
+        if (f.open < 0.12) {
+            f.eyeShape = kAnimeEyeClosed;
+        }
+    }
+    f.look = vec2(0.35, 0.1);
+    float h = size * 3.0;
+    animeEye(C, q, c, vec2(h * 0.8, h), side, f, gIris, gEyeInk);
+    if (mood == kAnimeMoodAngry) {
+        animeBrow(C, q, c + vec2(0.0, -h * 0.78), h * 0.8, side, 1.0, gEyeInk);
+    }
+}
 
 const int kBellcap = 0, kMochi = 1, kTurbanshell = 2, kPudgy = 3, kStumpling = 4, kWisp = 5, kPebblet = 6, kFlitter = 7;
 
@@ -64,6 +109,10 @@ void main()
     }
     vec2 q = animeApplyMotion(p, m, feet);
     vec3 ink = animeInkOf(bodyColor * 0.6 + accent * 0.4);
+    gIris = animeSaturate(mix(animeShadowTone(accent, 0.45), animeHex(0x6A3FA0u), 0.25), 1.6);
+    gEyeInk = animeInkOf(gIris * 0.3 + vec3(0.12, 0.05, 0.06));
+    gTime = time;
+    gSeed = seed;
 
     if (kind != kWisp && kind != kFlitter) {
         animeGroundShadow(C, p, feet, kind == kPudgy ? 34.0 : 30.0, m);
@@ -90,8 +139,8 @@ void main()
         vec2 cq = rotate2d(q - rim, (state == kAnimeWindup ? 0.22 * smoothstep(0.0, 0.7, progress) : 0.0)) + rim;
         float capD = sdBellCap(cq, rim, 34.0, 40.0, 7.0);
         animeCastShadow(C, body, sdBellCap(q - vec2(1.0, 4.0), rim, 32.0, 40.0, 7.0), stalk);
-        animeDotEye(C, q, vec2(-6.0, 27.0), 4.8, m.mood, ink, -1.0);
-        animeDotEye(C, q, vec2(9.0, 27.0), 4.8, m.mood, ink, 1.0);
+        critterEye(q, vec2(-6.0, 27.0), 4.8, m.mood, -1.0);
+        critterEye(q, vec2(9.0, 27.0), 4.8, m.mood, 1.0);
         animeBlush(C, q, vec2(-12.0, 35.0), vec2(4.0, 2.0), 0.7, ink);
         animeBlush(C, q, vec2(15.0, 35.0), vec2(4.0, 2.0), 0.7, ink);
         animeMonsterMouth(C, q, vec2(1.5, 37.0), 7.0, m.mood, ink);
@@ -126,8 +175,8 @@ void main()
         float bubble = sdCircle(q - vec2(-14.0 + sin(time * 1.3) * 3.0, 38.0 - fract(time * 0.25) * 6.0), 2.6);
         animeStroke(C, abs(bubble), 0.9, mix(bodyColor, vec3(1.0), 0.8));
         animeGloss(C, q, body, vec2(-16.0, 22.0), vec2(6.0, 4.5), 0.75);
-        animeDotEye(C, q, vec2(-8.0, 30.0), 5.0, m.mood, ink, -1.0);
-        animeDotEye(C, q, vec2(10.0, 30.0), 5.0, m.mood, ink, 1.0);
+        critterEye(q, vec2(-8.0, 30.0), 5.0, m.mood, -1.0);
+        critterEye(q, vec2(10.0, 30.0), 5.0, m.mood, 1.0);
         animeBlush(C, q, vec2(-16.0, 38.0), vec2(4.5, 2.2), 0.6, ink);
         animeBlush(C, q, vec2(18.0, 38.0), vec2(4.5, 2.2), 0.6, ink);
         animeMonsterMouth(C, q, vec2(1.0, 39.0), 7.0, m.mood, ink);
@@ -151,8 +200,8 @@ void main()
             animePart(C, sdCircle(q - tip, 2.4), soft);
         }
         animePart(C, body, soft);
-        animeDotEye(C, q, head + vec2(-1.0, -1.0), 3.4, m.mood, ink, -1.0);
-        animeDotEye(C, q, head + vec2(6.5, -1.0), 3.0, m.mood, ink, 1.0);
+        critterEye(q, head + vec2(-1.0, -1.0), 3.4, m.mood, -1.0);
+        critterEye(q, head + vec2(6.5, -1.0), 3.0, m.mood, 1.0);
         animeMonsterMouth(C, q, head + vec2(3.5, 5.0), 4.5, m.mood, ink);
         vec2 sc = vec2(-8.0, 38.0);
         float tiers = 1e5;
@@ -210,8 +259,8 @@ void main()
         animePart(C, snout, animeMaterial(animeHex(0xF2B9A6u)));
         animeFlat(C, sdEllipse(q - vec2(24.0, 30.0), vec2(1.4, 2.2)), inner.ink);
         animeFlat(C, sdEllipse(q - vec2(28.5, 30.0), vec2(1.4, 2.2)), inner.ink);
-        animeDotEye(C, q, vec2(10.0, 19.0), 4.6, m.mood, ink, -1.0);
-        animeDotEye(C, q, vec2(22.0, 19.0), 4.0, m.mood, ink, 1.0);
+        critterEye(q, vec2(10.0, 19.0), 4.6, m.mood, -1.0);
+        critterEye(q, vec2(22.0, 19.0), 4.0, m.mood, 1.0);
         animeBlush(C, q, vec2(14.0, 30.0), vec2(4.0, 2.0), 0.7, ink);
         animeMonsterMouth(C, q, vec2(21.0, 39.5), 5.0, m.mood, ink);
         if (state == kAnimeMove) {
@@ -252,8 +301,8 @@ void main()
         animeStroke(C, sdBezier(q, topC + vec2(4.0, -1.0), topC + vec2(4.0, -8.0), topC + vec2(2.0, -12.0)), 2.0, leaf.ink);
         animePart(C, sdEar(q, topC + vec2(2.5, -11.0), topC + vec2(-8.0, -18.0 + sin(time * 3.0)), 4.5, 0.25), leaf);
         animePart(C, sdEar(q, topC + vec2(3.0, -11.0), topC + vec2(13.0, -20.0 - sin(time * 3.0)), 5.0, -0.25), leaf);
-        animeDotEye(C, q, vec2(-3.0, 24.0), 4.4, m.mood, ink, -1.0);
-        animeDotEye(C, q, vec2(10.0, 24.0), 4.4, m.mood, ink, 1.0);
+        critterEye(q, vec2(-3.0, 24.0), 4.4, m.mood, -1.0);
+        critterEye(q, vec2(10.0, 24.0), 4.4, m.mood, 1.0);
         animeMonsterMouth(C, q, vec2(4.0, 33.0), 6.0, m.mood, ink);
         animeBlush(C, q, vec2(-8.0, 31.0), vec2(3.5, 1.8), 0.5, ink);
         animeBlush(C, q, vec2(16.0, 31.0), vec2(3.5, 1.8), 0.5, ink);
@@ -288,8 +337,8 @@ void main()
         }
         C.color = over(vec4(accent * 1.4, glowFalloff(crystal, 10.0) * 0.5), C.color);
         animePart(C, crystal, ore);
-        animeDotEye(C, q, vec2(8.0, 24.0), 4.6, m.mood, ink, -1.0);
-        animeDotEye(C, q, vec2(21.0, 24.0), 4.2, m.mood, ink, 1.0);
+        critterEye(q, vec2(8.0, 24.0), 4.6, m.mood, -1.0);
+        critterEye(q, vec2(21.0, 24.0), 4.2, m.mood, 1.0);
         animeBlush(C, q, vec2(5.0, 33.0), vec2(4.0, 2.0), 0.6, ink);
         animeBlush(C, q, vec2(25.0, 33.0), vec2(3.5, 2.0), 0.6, ink);
         animeMonsterMouth(C, q, vec2(15.0, 35.0), 5.0, m.mood, ink);
@@ -321,8 +370,8 @@ void main()
         for (int i = 0; i < 2; ++i) {
             animePart(C, sdEllipse(q - vec2(-6.0 + float(i) * 10.0, 39.0), vec2(3.0, 2.5)), animeMaterial(animeHex(0xF2B9A6u)));
         }
-        animeDotEye(C, q, vec2(4.0, 14.0), 4.6, m.mood, ink, -1.0);
-        animeDotEye(C, q, vec2(16.0, 14.0), 4.2, m.mood, ink, 1.0);
+        critterEye(q, vec2(4.0, 14.0), 4.6, m.mood, -1.0);
+        critterEye(q, vec2(16.0, 14.0), 4.2, m.mood, 1.0);
         animeBlush(C, q, vec2(1.0, 22.0), vec2(3.5, 1.8), 0.6, ink);
         animeMonsterMouth(C, q, vec2(10.0, 24.0), 4.0, m.mood, ink);
         top = -8.0;
@@ -337,19 +386,13 @@ void main()
         animePart(C, body, sheet);
         animeLine(C, max(sdBezier(q, vec2(-12.0, 28.0), vec2(-14.0, 36.0), vec2(-22.0 + wave * 3.0, 42.0)), body + 1.0), sheet.ink);
         animeGloss(C, q, body, vec2(-8.0, 2.0), vec2(6.0, 8.0), 0.5);
-        // Hollow eyes and a small "o".
+        // The same eyes as everyone, and a small "o" when calm.
         int mood = m.mood;
-        if (mood == kAnimeMoodCalm) {
-            animeFlat(C, sdEllipse(q - vec2(-4.0, 12.0), vec2(4.0, 6.0)), ink);
-            animeFlat(C, sdEllipse(q - vec2(10.0, 12.0), vec2(4.0, 6.0)), ink);
-            animeFlat(C, sdCircle(q - vec2(-5.0, 10.0), 1.4), vec3(0.75, 0.95, 1.0));
-            animeFlat(C, sdCircle(q - vec2(9.0, 10.0), 1.4), vec3(0.75, 0.95, 1.0));
-            animeMonsterMouth(C, q, vec2(3.0, 23.0), 6.0, kAnimeMoodHurt, ink);
-        } else {
-            animeDotEye(C, q, vec2(-4.0, 12.0), 5.0, mood, ink, -1.0);
-            animeDotEye(C, q, vec2(10.0, 12.0), 5.0, mood, ink, 1.0);
-            animeMonsterMouth(C, q, vec2(3.0, 23.0), 6.0, mood, ink);
-        }
+        critterEye(q, vec2(-4.0, 12.0), 5.0, mood, -1.0);
+        critterEye(q, vec2(10.0, 12.0), 5.0, mood, 1.0);
+        animeBlush(C, q, vec2(-9.0, 21.0), vec2(4.0, 2.0), 0.6, ink);
+        animeBlush(C, q, vec2(15.0, 21.0), vec2(4.0, 2.0), 0.6, ink);
+        animeMonsterMouth(C, q, vec2(3.0, 24.0), 6.0, mood == kAnimeMoodCalm ? kAnimeMoodHurt : mood, ink);
         C.alpha = 0.92;
         top = -9.0;
         topX = 2.0;

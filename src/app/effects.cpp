@@ -71,7 +71,7 @@ std::string itemName(const int item)
 
 Effects::Effects()
     : m_numbers{{.pixelSize = 5.0f, .criticalScale = 1.45f, .pop = 0.6f, .popSeconds = 0.14f, .life = 1.05f, .rise = 70.0f,
-                 .fadeFrom = 0.7f, .stackSpacing = 46.0f, .stackSeconds = 0.6f}}
+                 .fadeFrom = 0.7f, .stackSpacing = 62.0f, .stackSeconds = 0.6f}}
     , m_sparks{400, {0.0f, 900.0f}, 0.4f, 7}
     , m_petals{200, {0.0f, 60.0f}, 0.6f, 11}
 {

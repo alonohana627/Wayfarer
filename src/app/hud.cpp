@@ -131,7 +131,7 @@ void Hud::drawBars(gamelib::draw::DrawList& list, const Shapes& shapes, const ga
     ui::text(list, std::format("exp {:.1f}%", c.xpProgress() * 100.0f), W * 0.5f, H - 33.0f,
              {.size = 19.0f, .color = srgb(0xFFFFFF), .weight = 1.5f, .align = Align::Center, .outline = true});
     // The status panel.
-    const Rect panel{18.0f, H - 160.0f, 520.0f, 116.0f};
+    const Rect panel{18.0f, H - 176.0f, 520.0f, 132.0f};
     addUi(list, shapes, Ui::Window, panel.expanded(8.0f), srgb(0x3E3354, 0.86f), srgb(0x8CCAD6), 0.0f, 1.0f);
     // The level badge.
     const Vec2 badge{panel.x + 62.0f, panel.center().y};
@@ -159,7 +159,9 @@ void Hud::drawBars(gamelib::draw::DrawList& list, const Shapes& shapes, const ga
         if (c.skills.points() > 0) {
             nudge += (nudge.empty() ? "" : "  ") + std::format("{} sp", c.skills.points());
         }
-        ui::text(list, nudge, panel.x + 14.0f, panel.y - 40.0f, {.size = 24.0f, .color = srgb(0xFFE08A), .weight = 1.6f, .outline = true});
+        const float w = ui::textWidth(nudge, 20.0f) + 28.0f;
+        addUi(list, shapes, Ui::Button, {gx + 40.0f, panel.y + 98.0f, w, 30.0f}, srgb(0xFFD86A), ui_color::kGold, 1.0f);
+        ui::text(list, nudge, gx + 54.0f, panel.y + 101.0f, {.size = 20.0f, .color = ui_color::kInk, .weight = 1.6f});
     }
 }
 

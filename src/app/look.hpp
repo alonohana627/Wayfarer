@@ -84,3 +84,13 @@ struct IconLook {
 [[nodiscard]] Color regionAccent(game::Region region);
 
 } // namespace wayfarer::app
+
+namespace wayfarer::app {
+// How big a creature is drawn for its box: the quad height, and how far
+// above its feet the drawing's top is (for health bars and names).
+struct MonsterScale {
+    float quad = 0.0f;
+    float top = 0.0f;
+};
+[[nodiscard]] MonsterScale monsterScale(game::Archetype archetype, float boxHeight, bool elite);
+} // namespace wayfarer::app

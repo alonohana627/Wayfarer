@@ -300,7 +300,7 @@ void drawWeaponAndNearArm(Rig r, int pose, float ph)
     vec2 dir = r.gripDir;
     vec2 side = vec2(-dir.y, dir.x);
     if (gWeapon == kWeaponSword || gWeapon == kWeaponAxe || gWeapon == kWeaponDagger) {
-        float len = gWeapon == kWeaponDagger ? 16.0 : (gWeapon == kWeaponAxe ? 28.0 : 37.0);
+        float len = gWeapon == kWeaponDagger ? 17.0 : (gWeapon == kWeaponAxe ? 28.0 : 34.0);
         vec2 tip = g + dir * len;
         vec2 guard = g + dir * 4.0;
         if (pose == kPoseAttack && ph > 0.42 && ph < 0.75 && gWeapon != kWeaponDagger) {
@@ -320,9 +320,9 @@ void drawWeaponAndNearArm(Rig r, int pose, float ph)
             float blade = sdLockBelly(P, headAt, headAt + side * 6.0 + dir * 1.0, headAt + side * 10.0, 3.0, 6.5);
             animePartShine(C, blade, gSteel, animeCover(C, abs(blade + 1.6) - 0.6) * 0.8, vec3(1.0));
         } else {
-            float blade = sdLock(P, guard, mix(guard, tip, 0.5), tip, gWeapon == kWeaponDagger ? 2.4 : 3.6, 0.7);
+            float blade = sdLock(P, guard, mix(guard, tip, 0.5), tip, gWeapon == kWeaponDagger ? 3.0 : 4.4, 0.9);
             animePartShine(C, blade, gSteel, animeCover(C, abs(sdSegment(P, guard, tip, 0.0) + 0.9) - 0.5) * 0.9, vec3(1.0));
-            animePart(C, sdSegment(P, guard - side * 4.5, guard + side * 4.5, 1.5), gTrim);
+            animePart(C, sdSegment(P, guard - side * 6.0, guard + side * 6.0, 1.9), gTrim);
             animePart(C, sdSegment(P, g - dir * 3.5, guard, 1.6), gLeather);
             animePart(C, sdCircle(P - g + dir * 4.0, 1.9), gTrim); // pommel
         }

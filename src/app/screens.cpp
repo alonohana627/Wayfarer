@@ -59,7 +59,7 @@ void WayfarerGame::drawMenu(gamelib::draw::DrawList& list, const float time) con
         list.box({0.0f, 0.0f, static_cast<float>(m_canvas.width), static_cast<float>(m_canvas.height)}, srgb(0x1A1428, 0.45f));
         inner = ui::window(list, m_shapes, {x, y, w, h}, "paused");
     } else {
-        addUi(list, m_shapes, Ui::Window, Rect{x, y, w, h}.expanded(10.0f), srgb(0xFFF7E8, 0.92f), ui_color::kTitle, 0.0f, 0.0f);
+        addUi(list, m_shapes, Ui::Window, Rect{x, y, w, h}.expanded(10.0f), srgb(0xFFF7E8, 1.0f), ui_color::kTitle, 0.0f, 0.0f);
         inner = {x + 18.0f, y + 14.0f, w - 36.0f, h - 28.0f};
     }
     for (std::size_t i = 0; i < menu->items().size(); ++i) {
@@ -130,7 +130,7 @@ void WayfarerGame::drawTitle(gamelib::draw::DrawList& list, const float time) co
     }
     drawMenu(list, time);
     drawControls(list, time);
-    ui::text(list, "z / enter: choose    esc: back    f11: fullscreen", W * 0.5f, static_cast<float>(m_canvas.height) - 60.0f,
+    ui::text(list, "enter: choose     esc: back     f11: fullscreen", W * 0.5f, static_cast<float>(m_canvas.height) - 52.0f,
              {.size = 22.0f, .color = srgb(0xFFFFFF, 0.85f), .weight = 1.3f, .align = Align::Center, .outline = true});
 }
 
@@ -356,7 +356,7 @@ void WayfarerGame::drawSheet(gamelib::draw::DrawList& list, const float time) co
             for (int e = 0; e < 2; ++e) {
                 anime::Monster m;
                 m.feet = {x, y + static_cast<float>(e) * 190.0f};
-                m.height = sp.size.y / 0.62f;
+                m.height = monsterScale(sp.look, sp.size.y * (e == 1 ? 1.3f : 1.0f), e == 1).quad;
                 m.kind = static_cast<anime::MonsterKind>(monsterShaderKind(sp.look));
                 const MonsterColors colors = monsterColors(id, e == 1);
                 m.body = colors.body;

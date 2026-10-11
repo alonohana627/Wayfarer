@@ -27,7 +27,7 @@ using ui::Align;
 
 constexpr int kLayer = gamelib::draw::layers::Hud + 60;
 constexpr int kGridColumns = 6;
-constexpr float kSlotSize = 100.0f;
+constexpr float kSlotSize = 106.0f;
 
 // The window's pop-in: scale from 0.92 and fade over a fifth of a second.
 float popIn(const float age)
@@ -45,17 +45,17 @@ Rect grid(const Vec2 origin, const int index)
 
 // The inventory window: 5 gear slots (0..4) then the 24 bag slots (5..28).
 constexpr Rect kInvWindow{300.0f, 110.0f, 1320.0f, 860.0f};
-constexpr Vec2 kInvGrid{720.0f, 200.0f};
+constexpr Vec2 kInvGrid{770.0f, 196.0f};
 
 std::array<Rect, game::kSlotCount + game::kBagSlots> inventoryRects()
 {
     std::array<Rect, game::kSlotCount + game::kBagSlots> r{};
-    const float cx = 490.0f;
+    const float cx = 520.0f;
     r[static_cast<std::size_t>(game::Slot::Helmet)] = {cx - 50.0f, 190.0f, kSlotSize, kSlotSize};
-    r[static_cast<std::size_t>(game::Slot::Weapon)] = {cx - 190.0f, 330.0f, kSlotSize, kSlotSize};
-    r[static_cast<std::size_t>(game::Slot::Armor)] = {cx + 90.0f, 330.0f, kSlotSize, kSlotSize};
-    r[static_cast<std::size_t>(game::Slot::Ring)] = {cx - 190.0f, 470.0f, kSlotSize, kSlotSize};
-    r[static_cast<std::size_t>(game::Slot::Shoes)] = {cx + 90.0f, 470.0f, kSlotSize, kSlotSize};
+    r[static_cast<std::size_t>(game::Slot::Weapon)] = {cx - 175.0f, 316.0f, kSlotSize, kSlotSize};
+    r[static_cast<std::size_t>(game::Slot::Armor)] = {cx + 75.0f, 316.0f, kSlotSize, kSlotSize};
+    r[static_cast<std::size_t>(game::Slot::Ring)] = {cx - 175.0f, 446.0f, kSlotSize, kSlotSize};
+    r[static_cast<std::size_t>(game::Slot::Shoes)] = {cx + 75.0f, 446.0f, kSlotSize, kSlotSize};
     for (int i = 0; i < game::kBagSlots; ++i) {
         r[static_cast<std::size_t>(game::kSlotCount + i)] = grid(kInvGrid, i);
     }
@@ -508,10 +508,10 @@ void Windows::drawInventory(gamelib::draw::DrawList& list, const Shapes& shapes,
     const float lift = (1.0f - pop) * 30.0f;
     const auto rects = inventoryRects();
     // The equipment side: a portrait with the five slots round it.
-    const Rect equip{kInvWindow.x + 30.0f, kInvWindow.y + 70.0f + lift, 380.0f, 540.0f};
+    const Rect equip{kInvWindow.x + 30.0f, kInvWindow.y + 70.0f + lift, 380.0f, 480.0f};
     ui::well(list, shapes, equip);
     anime::Avatar a = heroAvatar(c);
-    a.feet = {equip.center().x, equip.y + 470.0f};
+    a.feet = {equip.center().x, equip.y + 440.0f};
     a.height = 300.0f;
     a.facing = 1.0f;
     a.pose = anime::AvatarPose::Idle;

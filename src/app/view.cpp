@@ -413,9 +413,9 @@ void WorldView::drawTerrain(gamelib::draw::DrawList& list, const Shapes& shapes,
     tiles.set(gamelib::core::charTile(game::kGround),
               {.shape = shapes.terrain, .color = look.cap, .color2 = look.body, .params = {0.0f, style, 1.3f, 0.0f}});
     tiles.set(gamelib::core::charTile(game::kRampUp),
-              {.shape = shapes.terrain, .color = look.cap, .color2 = look.body, .params = {4.0f, style, 1.3f, 0.0f}, .group = 1});
+              {.shape = shapes.terrain, .color = look.cap, .color2 = look.body, .params = {4.0f, style, 1.3f, 0.0f}, .group = 0});
     tiles.set(gamelib::core::charTile(game::kRampDown),
-              {.shape = shapes.terrain, .color = look.cap, .color2 = look.body, .params = {5.0f, style, 1.3f, 0.0f}, .group = 2});
+              {.shape = shapes.terrain, .color = look.cap, .color2 = look.body, .params = {5.0f, style, 1.3f, 0.0f}, .group = 0});
     list.setLayer(kLayerTerrain);
     const Rect vis = visible().expanded(game::kTile);
     // Ramps join the ground under them (so no outline runs between), but the ground doesn't join a ramp beside it.
@@ -534,7 +534,7 @@ void WorldView::drawMonsters(gamelib::draw::DrawList& list, const Shapes& shapes
         const MonsterColors colors = monsterColors(m.species, m.elite);
         anime::Monster look;
         look.feet = box.bottomCenter();
-        look.height = sp.size.y / 0.62f; // the drawing is a little taller than its box
+        look.height = monsterScale(sp.look, box.height, m.elite).quad;
         look.facing = static_cast<float>(m.facing);
         look.kind = static_cast<anime::MonsterKind>(monsterShaderKind(sp.look));
         look.body = colors.body;
@@ -782,7 +782,8 @@ void WorldView::drawLabels(gamelib::draw::DrawList& list, const Shapes& shapes, 
         const bool recent = session.ticks() - m.lastHitTick < 240;
         if (recent || m.elite) {
             const float w = std::max(box.width * 1.2f, 70.0f);
-            const Rect bar{box.center().x - w * 0.5f, box.top() - 30.0f, w, 14.0f};
+            const float drawn = monsterScale(m.kind().look, box.height, m.elite).top;
+            const Rect bar{box.center().x - w * 0.5f, box.bottom() - drawn - 26.0f, w, 14.0f};
             addUi(list, shapes, Ui::Gauge, bar, srgb(0xF0606E), srgb(0xFFC8C8),
                   static_cast<float>(m.hp) / static_cast<float>(std::max(m.maxHp, 1)), 0.0f);
             const std::string name = std::format("Lv.{} {}{}", m.level, m.elite ? "elite " : "", m.kind().name);

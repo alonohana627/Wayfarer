@@ -144,7 +144,7 @@ void DialogueView::draw(gamelib::draw::DrawList& list, const Shapes& shapes, con
     // The portrait: the speaker's avatar, big, leaning in over the box.
     if (m_portrait) {
         anime::Avatar a = npcAvatar(*m_portrait);
-        a.feet = {kBox.x + 150.0f, kBox.bottom() + 240.0f + slide};
+        a.feet = {kBox.x + 160.0f, kBox.y + 200.0f + slide};
         a.height = 560.0f;
         a.facing = 1.0f;
         a.pose = anime::AvatarPose::Idle;
