@@ -18,6 +18,14 @@ using gamelib::core::SkillLevel;
 constexpr float kWalkSpeed = 5.2f;      // 312 units a second: six and a half tiles
 constexpr float kJumpHeight = 150.0f;   // a little over three tiles
 constexpr int kJumpApexTicks = 23;
+// The hyper jump at 100% (its skill level scales the forward burst and the
+// straight-up rise): a burst of 12 units a tick with a small lift, the input
+// locked for 12 ticks and no air drag for 26 so it carries.
+constexpr float kHyperForward = 12.0f;
+constexpr float kHyperRise = 5.0f;
+constexpr float kHyperUp = 15.0f;
+constexpr int kHyperLockTicks = 12;
+constexpr int kHyperGlideTicks = 26;
 
 // Auto-assign weights (a balanced adventurer).
 constexpr std::array<int, kCoreCount> kAutoWeights{2, 1, 1, 1};
@@ -265,16 +273,13 @@ void Character::refreshResources()
 gamelib::core::PlatformerTuning Character::tuning() const
 {
     const Derived d = derived();
-    const float speed = static_cast<float>(d.speed) / 100.0f;
-    const float jump = static_cast<float>(d.jump) / 100.0f;
     gamelib::core::PlatformerTuning t;
-    t.maxSpeed = kWalkSpeed * speed;
-    t.groundAccel = 1.0f * speed;
-    t.groundDecel = 1.3f * speed;
-    t.airAccel = 0.42f * speed;
+    t.maxSpeed = kWalkSpeed;
+    t.groundAccel = 1.0f;
+    t.groundDecel = 1.3f;
+    t.airAccel = 0.42f;
     t.airDecel = 0.16f;
     t.setJumpArc(kJumpHeight, kJumpApexTicks);
-    t.jumpSpeed = gamelib::core::PlatformerTuning::jumpSpeedFor(kJumpHeight * jump, t.gravity);
     t.maxFallSpeed = 15.0f;
     t.fallGravity = 1.12f;
     t.jumpCut = 0.55f;
@@ -284,7 +289,20 @@ gamelib::core::PlatformerTuning Character::tuning() const
     t.climbSpeed = 3.6f;
     t.climbJumpSpeed = {4.5f, 8.0f};
     t.dropThroughTicks = 12;
-    return t;
+    // The hyper jump, stronger with its skill level (off until learned).
+    const int hyper = skillLevel(SkillId::HyperJump);
+    if (hyper > 0) {
+        const float power = static_cast<float>(skillDef(SkillId::HyperJump).levels[static_cast<std::size_t>(hyper - 1)].value) / 100.0f;
+        t.hyperForward = {kHyperForward * power, kHyperRise};
+        t.hyperUp = kHyperUp * power;
+        t.hyperLockTicks = kHyperLockTicks;
+        t.hyperGlideTicks = kHyperGlideTicks;
+    }
+    // Speed and Jump percentages (gear, points, Tailwind) scale it all.
+    return gamelib::core::scaledTuning(t, {.speed = static_cast<float>(d.speed) / 100.0f,
+                                           .jump = static_cast<float>(d.jump) / 100.0f,
+                                           .speedCap = static_cast<float>(kSpeedCap) / 100.0f,
+                                           .jumpCap = static_cast<float>(kJumpCap) / 100.0f});
 }
 
 } // namespace wayfarer::game

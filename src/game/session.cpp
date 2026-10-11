@@ -27,10 +27,6 @@ constexpr int kRespawnDelay = 7 * kTickRate;
 constexpr int kHurtStun = 18;
 constexpr int kHurtInvincible = 100;
 constexpr float kRollSpeed = 9.5f;
-constexpr float kHyperForward = 12.0f;
-constexpr float kHyperRise = 5.0f;
-constexpr float kHyperUp = 15.0f;
-constexpr int kHyperLock = 12;
 constexpr int kDropLifetime = 90 * kTickRate;
 constexpr Vec2 kTalkReach{90.0f, 110.0f};
 constexpr float kInnDoorX = 47.8f * kTile; // the inn door in Hearthvale (maps_town.cpp)
@@ -242,15 +238,20 @@ void Session::enterMap(const MapId id, const std::optional<Vec2> feet, const int
     m_shots.clear();
     m_rain.clear();
     m_boss.reset();
-    m_slots.clear();
+    // The map's monsters: a spawn point per monster on its floor run, refilled
+    // on a timer (7-10 s) at a random x away from the hero.
+    m_spawner = gamelib::core::Spawner{};
     const MapDef& def = map();
     for (int s = 0; s < static_cast<int>(def.spawns.size()); ++s) {
-        for (int i = 0; i < def.spawns[static_cast<std::size_t>(s)].count; ++i) {
-            m_slots.push_back({.def = s});
+        const SpawnDef& sd = def.spawns[static_cast<std::size_t>(s)];
+        for (int i = 0; i < sd.count; ++i) {
+            (void)m_spawner.add({.kind = s, .position = {sd.run.left(), sd.run.bottom()},
+                                 .respawnTicks = kRespawnDelay + m_rng.range(0, 3 * kTickRate), .width = sd.run.width});
         }
     }
-    for (int i = 0; i < static_cast<int>(m_slots.size()); ++i) {
-        spawnInto(i, true);
+    const std::span<const int> opening = m_spawner.reset();
+    for (const int point : std::vector<int>(opening.begin(), opening.end())) {
+        spawnInto(point, true);
     }
     if (def.arena && !bossBeaten(def.arena->boss)) {
         m_boss = makeBoss(def.arena->boss, def.arena->bossFeet, def.arena->bounds);
@@ -276,15 +277,14 @@ void Session::enterMap(const MapId id, const std::optional<Vec2> feet, const int
     }
 }
 
-void Session::spawnInto(const int slotIndex, const bool immediate)
+void Session::spawnInto(const int point, const bool immediate)
 {
-    SpawnSlot& slot = m_slots[static_cast<std::size_t>(slotIndex)];
-    const SpawnDef& def = map().spawns[static_cast<std::size_t>(slot.def)];
+    const SpawnDef& def = map().spawns[static_cast<std::size_t>(m_spawner.point(point).kind)];
     const Species& s = species(def.species);
     const float left = def.run.left();
     const float right = def.run.right();
-    const float span = std::max(right - left - s.size.x, 1.0f);
-    const float x = left + s.size.x * 0.5f + span * m_rng.unit();
+    const Vec2 placed = m_spawner.place(point, m_rng, s.size.x, m_hero.body.box.expanded(60.0f));
+    const float x = placed.x;
     const float floorY = def.run.bottom();
     const bool elite = m_rng.range(0, 99) < map().eliteChance;
     const int level = s.level + m_rng.range(0, 1);
@@ -293,13 +293,11 @@ void Session::spawnInto(const int slotIndex, const bool immediate)
         feet.y -= 70.0f + m_rng.unit() * 90.0f;
     }
     Monster m = makeMonster(def.species, level, elite, feet, left, right, static_cast<std::uint8_t>(m_rng.range(0, 255)));
-    m.spawn = slotIndex;
+    m.spawn = point;
     if (immediate) {
         m.stateTicks = m.stateLength - 1; // already standing there when the map opens
     }
     m_monsters.push_back(m);
-    slot.occupied = true;
-    slot.timer = 0;
     if (!immediate) {
         push({.kind = EventKind::Spawned, .at = m.box.bottomCenter()});
     }
@@ -733,15 +731,16 @@ bool Session::sellFromBag(const int bagSlot)
     if (stack.empty() || itemInfo(stack.item).kind == ItemKind::Quest) {
         return false;
     }
-    // Equipment sells by its rarity and upgrades (core::Shop pays the plain
-    // price), so the stack is taken and paid here.
-    const int each = itemInfo(stack.item).kind == ItemKind::Equip ? sellValue(stack) : itemRegistry().at(stack.item).sellPrice;
-    if (each <= 0) {
+    // Equipment sells by its rarity and upgrades, everything else at its price.
+    const std::int64_t before = m_char.coins;
+    gamelib::core::Shop shop{itemRegistry(), shopEntries()};
+    const auto price = [](const ItemStack& s) {
+        return itemInfo(s.item).kind == ItemKind::Equip ? sellValue(s) : itemRegistry().at(s.item).sellPrice;
+    };
+    if (shop.sell(m_char.bag, bagSlot, stack.count, m_char.coins, price) != gamelib::core::TradeResult::Done) {
         return false;
     }
-    (void)m_char.bag.takeAt(bagSlot, stack.count);
-    m_char.coins += static_cast<std::int64_t>(each) * stack.count;
-    push({.kind = EventKind::Sold, .value = each * stack.count});
+    push({.kind = EventKind::Sold, .value = static_cast<int>(m_char.coins - before)});
     refreshCollectQuests();
     return true;
 }
@@ -1017,48 +1016,32 @@ void Session::tickHero(const Input& input)
         intent.jumpPressed = false;
     }
 
-    // The hyper jump: a second jump in the air.
-    const int hyperLevel = m_char.skillLevel(SkillId::HyperJump);
-    if (input.jumpPressed && !b.grounded && !b.climbing && b.coyote == 0 && hyperLevel > 0 && h.hyperLeft > 0 && h.hurtTicks == 0
-        && h.castTicks == 0 && h.rollTicks == 0) {
-        const int id = static_cast<int>(SkillId::HyperJump);
-        if (m_char.skills.use(id, m_char.mp)) {
-            const float power = static_cast<float>(skillDef(SkillId::HyperJump).levels[static_cast<std::size_t>(hyperLevel - 1)].value) / 100.0f;
-            const float jumpPct = static_cast<float>(m_derived.jump) / 100.0f;
-            if (input.move != 0) {
-                b.facing = input.move;
-            }
-            h.hyperUp = input.climb < 0;
-            const Vec2 v = h.hyperUp ? Vec2{b.velocity.x * 0.4f, -kHyperUp * power * std::sqrt(jumpPct)}
-                                     : Vec2{static_cast<float>(b.facing) * kHyperForward * power * (static_cast<float>(m_derived.speed) / 100.0f),
-                                            -kHyperRise * std::sqrt(jumpPct)};
-            gamelib::core::launch(b, v, false);
-            b.lockTicks = h.hyperUp ? 4 : kHyperLock;
-            h.hyperLeft = 0;
-            h.hyperTicks = 26;
-            h.combo.cancel();
-            push({.kind = EventKind::HyperJump, .value = h.hyperUp ? 1 : 0, .at = b.box.center()});
-        } else {
-            push({.kind = EventKind::NoMana, .value = id, .at = b.box.center()});
-        }
-        intent.jumpPressed = false;
-    }
-
     gamelib::core::PlatformerTuning tuning = m_char.tuning();
+    // The hyper jump: GameLib's controller bursts on a jump in the air while
+    // we allow it (learned, affordable, free to act); it is paid on the event.
+    const int hyperId = static_cast<int>(SkillId::HyperJump);
+    const bool hyperFree = h.hurtTicks == 0 && h.castTicks == 0 && h.rollTicks == 0;
+    intent.hyperJump = hyperFree && m_char.skills.canUse(hyperId, m_char.mp);
+    if (intent.jumpPressed && hyperFree && !intent.hyperJump && m_char.skillLevel(SkillId::HyperJump) > 0
+        && gamelib::core::hyperJumpReady(b, tuning, w)) {
+        push({.kind = EventKind::NoMana, .value = hyperId, .at = b.box.center()});
+    }
     if (h.rollTicks > 0) {
         --h.rollTicks;
         b.velocity.x = static_cast<float>(b.facing) * kRollSpeed * (static_cast<float>(m_derived.speed) / 100.0f)
                        * (0.4f + 0.6f * static_cast<float>(h.rollTicks) / static_cast<float>(h.rollLength));
         b.lockTicks = std::max(b.lockTicks, 1);
     }
-    if (h.hyperTicks > 0 && !h.hyperUp) {
-        // Keep the burst's speed: no air drag for a moment.
-        tuning.airDecel = 0.0f;
-        tuning.maxSpeed = std::max(tuning.maxSpeed, std::abs(b.velocity.x));
-    }
     const bool wasGrounded = b.grounded;
     const bool wasClimbing = b.climbing;
     const gamelib::core::PlatformerStep step = gamelib::core::stepPlatformer(b, intent, tuning, w, {});
+    if (step.events.hyperJumped) {
+        (void)m_char.skills.use(hyperId, m_char.mp);
+        h.hyperUp = step.events.hyperUp;
+        h.hyperTicks = 26;
+        h.combo.cancel();
+        push({.kind = EventKind::HyperJump, .value = h.hyperUp ? 1 : 0, .at = b.box.center()});
+    }
     if (step.events.jumped || step.events.climbJumped) {
         push({.kind = EventKind::Jump, .at = b.box.bottomCenter()});
     }
@@ -1067,7 +1050,6 @@ void Session::tickHero(const Input& input)
         h.landTicks = 0;
     }
     if (b.grounded || b.climbing) {
-        h.hyperLeft = 1;
         h.airTicks = 0;
     } else {
         ++h.airTicks;
@@ -1325,10 +1307,8 @@ void Session::tickMonsters()
         if (step.lunged) {
             push({.kind = EventKind::EnemyShot, .value = static_cast<int>(m.species), .at = m.box.center()});
         }
-        if (step.finished && m.spawn >= 0 && m.spawn < static_cast<int>(m_slots.size())) {
-            SpawnSlot& slot = m_slots[static_cast<std::size_t>(m.spawn)];
-            slot.occupied = false;
-            slot.timer = kRespawnDelay + m_rng.range(0, 3 * kTickRate);
+        if (step.finished && m.spawn >= 0 && m.spawn < m_spawner.size()) {
+            m_spawner.killed(m.spawn);
         }
         // Fell out of the world: gone, and it comes back.
         if (m.box.top() > map().bounds().bottom() + 200.0f && m.alive()) {
@@ -1341,20 +1321,10 @@ void Session::tickMonsters()
 
 void Session::tickSpawns()
 {
-    for (int i = 0; i < static_cast<int>(m_slots.size()); ++i) {
-        SpawnSlot& slot = m_slots[static_cast<std::size_t>(i)];
-        if (slot.occupied) {
-            continue;
-        }
-        if (slot.timer > 0 && --slot.timer == 0) {
-            // Not right on top of the hero.
-            const SpawnDef& def = map().spawns[static_cast<std::size_t>(slot.def)];
-            if (overlapsRect(def.run.expanded(60.0f), m_hero.body.box) && def.run.width < 6.0f * kTile) {
-                slot.timer = kTickRate;
-                continue;
-            }
-            spawnInto(i, false);
-        }
+    // Due points wait while the hero stands over their whole run.
+    const std::span<const int> due = m_spawner.tick({.avoid = m_hero.body.box.expanded(60.0f), .retryTicks = kTickRate});
+    for (const int point : std::vector<int>(due.begin(), due.end())) {
+        spawnInto(point, false);
     }
 }
 

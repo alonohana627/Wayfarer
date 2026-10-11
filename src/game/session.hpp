@@ -27,6 +27,7 @@
 #include <gamelib/core/projectiles.hpp>
 #include <gamelib/core/quests.hpp>
 #include <gamelib/core/rng.hpp>
+#include <gamelib/core/spawner.hpp>
 #include <gamelib/core/telegraphs.hpp>
 #include <gamelib/core/world_flags.hpp>
 
@@ -90,7 +91,6 @@ struct Hero {
     int castLength = 1;
     SkillId casting = SkillId::Combo;
     int hurtTicks = 0;       // knocked back, no control
-    int hyperLeft = 1;       // hyper jumps left in this air time
     int hyperTicks = 0;      // > 0 just after a hyper jump (trail, no air control)
     bool hyperUp = false;
     int landTicks = 0;       // since landing (squash)
@@ -216,7 +216,7 @@ public:
 
 private:
     void enterMap(MapId map, std::optional<gamelib::core::Vec2> feet, int facing);
-    void spawnInto(int slot, bool immediate);
+    void spawnInto(int point, bool immediate);
     void tickHero(const Input& input);
     void tickMonsters();
     void tickBoss();
@@ -249,12 +249,7 @@ private:
     Hero m_hero;
     MapId m_map = MapId::Town;
     std::vector<Monster> m_monsters;
-    struct SpawnSlot {
-        int def = 0;      // index into the map's spawns
-        int timer = 0;    // ticks to the next spawn (0 = occupied or ready)
-        bool occupied = false;
-    };
-    std::vector<SpawnSlot> m_slots;
+    gamelib::core::Spawner m_spawner; // a point per monster (SpawnPoint::kind = the map's spawn index)
     std::optional<Boss> m_boss;
     std::vector<Drop> m_drops;
     Shots m_shots{96};
