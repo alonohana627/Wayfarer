@@ -68,7 +68,7 @@ src/game/   rules -> GameLib::core (+ GameLib::ai)
             items.*          the catalogue (core::ItemRegistry), loot rolls (rarity, weighted bonuses), upgrades
             character.*      level and experience, core stats and ability points, derived values,
                              Speed and Jump as platformer tuning, skills (core::SkillBook), bag, gear
-            maps.* maps_*.cpp  MapBuilder and the 21 maps: Hearthvale and five regions of four maps
+            maps.* maps_*.cpp  MapBuilder and the 21 maps: Hearthvale (with a parallax back row) and five regions
             monsters.*       twenty species on eight archetypes and their brains
             bosses.*         the five guardians and their telegraphed moves
             story.*          the six townsfolk, the quests (core::QuestBook) and every conversation (core::DialogueTree)
@@ -77,12 +77,13 @@ src/game/   rules -> GameLib::core (+ GameLib::ai)
             demo.*           the demo bot across the Bellwood Path
 src/app/    presentation -> GameLib::app, ui, fx, ai, storage
             wayfarer_game.*  the Game: title + demo, slots, play, conversations, windows, travel, fainting, ending
-            screens.cpp      the title, menus, controls, slots, fainting, ending and the construction sheets
+            screens.cpp      the title, menus and slots (ui::drawMenu/drawSaveSlots in Wayfarer frames), controls,
+                             fainting, ending and the construction sheets
             view.*           the world: camera, parallax backdrops, terrain, houses and decorations, portals,
                              people, monsters, guardians, loot, shots, the hero, lights and the color grade
             hud.*            bars, hotkeys, minimap, clock, quest tracker, toasts, the guardian's bar
-            windows.*        stats, skills, bag & equipment, quest log, shop and forge
-            dialogue_view.*  the conversation box with the speaker's portrait
+            windows.*        stats (ui::drawStatWindow), skills, bag & equipment (ui::SlotGrid), quest log, shop, forge
+            dialogue_view.*  ui::DialogueBox in Wayfarer frames, with the speaker's portrait and role
             effects.*        arcs, sparks, damage numbers, petals, afterimages, popups, motes, shake, flash
             ui_kit.*         windows, wrapped vector text, buttons, slots, gauges, item cards
             look.*           palettes, region looks by day and night, avatars, monster colors, icons
@@ -104,7 +105,7 @@ cmake --build --preset debug
 ctest --preset debug                 # the smoke run (validation required)
 build/debug/bin/wayfarer.exe         # play; --demo plays the demo bot
 $env:WAYFARER_SCENE = "sheet"        # the character construction sheets
-$env:WAYFARER_SCENE = "chapter3,level15,map9,night,gear,stats"   # developer start (see applyDevScene)
+$env:WAYFARER_SCENE = "chapter3,level15,map9,night,gear,learn,stats"   # developer start (see applyDevScene)
 ```
 
 For manual debug runs on MSYS2 set `VK_ADD_LAYER_PATH=C:\msys64\clang64\bin`
