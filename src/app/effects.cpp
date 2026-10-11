@@ -150,10 +150,10 @@ void Effects::react(const game::Event& e, const game::Session& s)
         const NumberKind kind = e.crit ? NumberKind::Crit : NumberKind::Hit;
         m_numbers.add(static_cast<long long>(e.value), e.at + Vec2{0.0f, -20.0f}, numberTag(kind), e.crit,
                       static_cast<std::uint64_t>(std::lround(e.at.x / 50.0f)) + 1000);
-        spot({.at = e.at + Vec2{0.0f, 30.0f}, .kind = Fx::Spark, .size = e.crit ? 200.0f : 150.0f,
+        spot({.at = e.at + Vec2{0.0f, 30.0f}, .kind = Fx::Spark, .size = e.crit ? 320.0f : 230.0f,
               .core = srgb(0xFFFFFF).scaled(1.4f), .edge = e.crit ? srgb(0xFFB040) : srgb(0xFFE6A0), .seed = e.at.x * 0.13f},
              0.28f);
-        m_sparks.burst(e.at + Vec2{0.0f, 30.0f}, e.crit ? 14 : 8,
+        m_sparks.burst(e.at + Vec2{0.0f, 30.0f}, e.crit ? 22 : 14,
                        {.speed = {220.0f, 520.0f}, .size = {4.0f, 8.0f}, .life = {0.2f, 0.45f}, .spin = {-8.0f, 8.0f},
                         .color = e.crit ? srgb(0xFFD060) : srgb(0xFFF2C0)});
         m_shake.trigger(std::min(0.25f + (e.crit ? 0.25f : 0.0f), 1.0f) * m_shakeScale * 0.5f);
@@ -234,11 +234,21 @@ void Effects::react(const game::Event& e, const game::Session& s)
         break;
     case EventKind::SkillCast: {
         const auto skill = static_cast<game::SkillId>(e.value);
+        if (skill != game::SkillId::Roll) {
+            // The anticipation: a bright flash gathers at the hero's hand as the skill goes off.
+            const Color tint = skill == game::SkillId::Sweep      ? srgb(0x7FD8FF)
+                               : skill == game::SkillId::Starbolt ? srgb(0xFFD86A)
+                               : skill == game::SkillId::Tailwind ? srgb(0x9AF0C8)
+                                                                  : srgb(0xFF9EC8);
+            spot({.at = Vec2{static_cast<float>(facing) * 34.0f, -78.0f}, .kind = Fx::Spark, .size = 210.0f,
+                  .core = srgb(0xFFFFFF).scaled(1.6f), .edge = tint.scaled(1.3f), .attached = true},
+                 0.2f);
+        }
         if (skill == game::SkillId::Sweep) {
             addArc({.offset = {0.0f, -56.0f}, .facing = facing, .core = srgb(0xFFFFFF).scaled(1.5f), .edge = srgb(0x7FD8FF).scaled(1.2f),
-                    .size = 420.0f, .kind = Fx::Sweep},
+                    .size = 560.0f, .kind = Fx::Sweep},
                    0.62f);
-            m_shake.trigger(0.4f * m_shakeScale);
+            m_shake.trigger(0.55f * m_shakeScale);
         } else if (skill == game::SkillId::Tailwind) {
             spot({.at = Vec2{0.0f, -60.0f}, .kind = Fx::Shockwave, .size = 460.0f, .core = srgb(0xFFFFFF),
                   .edge = srgb(0x9AF0C8).scaled(1.3f), .attached = true},

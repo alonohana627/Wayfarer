@@ -273,9 +273,12 @@ void Hud::drawMinimap(gamelib::draw::DrawList& list, const Shapes& shapes, const
     const float scale = std::min(maxW / static_cast<float>(def.columns), maxH / static_cast<float>(def.rows));
     const float w = static_cast<float>(def.columns) * scale;
     const float h = static_cast<float>(def.rows) * scale;
-    const Rect frame{22.0f, 64.0f, w + 24.0f, h + 24.0f};
+    // The map's name on a plate of its own, the minimap under it.
+    const float nameW = ui::textWidth(def.name, 28.0f) + 36.0f;
+    addUi(list, shapes, Ui::Tooltip, {14.0f, 12.0f, nameW, 46.0f}, srgb(0x2E2840, 0.75f), srgb(0x8CCAD6));
+    ui::text(list, def.name, 14.0f + nameW * 0.5f, 20.0f, {.size = 28.0f, .color = srgb(0xFFFFFF), .weight = 1.6f, .align = Align::Center});
+    const Rect frame{22.0f, 80.0f, w + 24.0f, h + 24.0f};
     addUi(list, shapes, Ui::Window, frame.expanded(8.0f), srgb(0x2E2840, 0.75f), srgb(0x8CCAD6), 0.0f, 1.0f);
-    ui::text(list, def.name, frame.x + 4.0f, frame.y - 46.0f, {.size = 28.0f, .color = srgb(0xFFFFFF), .weight = 1.6f, .outline = true});
     const Vec2 o{frame.x + 12.0f, frame.y + 12.0f};
     for (const Line& l : m_lines) {
         const Rect r{o.x + l.rect.x * scale, o.y + l.rect.y * scale, std::max(l.rect.width * scale, 2.0f), std::max(l.rect.height * scale, 2.0f)};

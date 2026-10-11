@@ -26,6 +26,10 @@ namespace layers = gamelib::draw::layers;
 
 constexpr float kPi = std::numbers::pi_v<float>;
 constexpr float kAvatarQuad = 158.0f; // the hero is about 125 units tall
+// The camera zoom: 1.25 canvas units per world unit, so the hero stands about
+// 156 of the 1080 canvas rows tall (14%, MapleStory-like) and a field shows
+// 32 x 18 tiles (arenas use zoom 1).
+constexpr float kZoom = 1.25f;
 constexpr int kLayerSkyline = -258; // under the light layer (kLayerDecoBack - 5)
 constexpr int kLayerDecoBack = -250;
 constexpr int kLayerHouses = -240;
@@ -191,7 +195,7 @@ int expressionFor(const game::Session& s)
 
 WorldView::WorldView(const gamelib::core::Size canvas)
     : m_canvas{canvas}
-    , m_camera{canvas}
+    , m_camera{canvas, kZoom}
     , m_squash{4.5f, 0.32f}
 {
 }
@@ -210,6 +214,8 @@ Vec2 WorldView::heroFeet(const game::Session& session, const float alpha) const
 void WorldView::snap(const game::Session& session)
 {
     m_map = session.mapId();
+    // Arenas are framed whole (zoom 1), so a guardian's attacks are always in view.
+    m_camera.setZoom(session.map().arena ? 1.0f : kZoom);
     m_camera.setBounds(session.map().bounds());
     const Vec2 feet = session.hero().body.box.bottomCenter();
     m_camera.centerOn(feet + Vec2{0.0f, -140.0f});
@@ -396,7 +402,7 @@ void WorldView::drawBackdrop(gamelib::draw::DrawList& list, const Shapes& shapes
     const RegionLook look = regionLook(def.region, def.dungeon, night);
     const auto region = static_cast<std::uint64_t>(backdropRegion(def.region));
     const Rect bounds = def.bounds();
-    const Vec2 anchor{0.0f, bounds.bottom() - static_cast<float>(m_canvas.height)};
+    const Vec2 anchor{0.0f, bounds.bottom() - static_cast<float>(m_canvas.height) / m_camera.zoom()};
     const std::array layersList{
         gamelib::draw::ParallaxLayer{.shape = shapes.backdrop, .factor = {0.0f, 0.0f}, .color = look.skyHorizon,
                                      .color2 = look.skyTop, .params = {0.0f, night}, .bits = region},
@@ -675,8 +681,8 @@ void WorldView::drawShots(gamelib::draw::DrawList& list, const Shapes& shapes, c
             if (back.x == 0.0f && back.y == 0.0f) {
                 back = {-1.0f, 0.0f};
             }
-            const Vec2 tail = s.position + back * 110.0f;
-            list.add({.rect = {tail.x - 110.0f, tail.y - 36.0f, 220.0f, 72.0f},
+            const Vec2 tail = s.position + back * 130.0f;
+            list.add({.rect = {tail.x - 130.0f, tail.y - 46.0f, 260.0f, 92.0f},
                       .color = srgb(0xFFF2B0).withAlpha(0.85f),
                       .color2 = srgb(0xFFC84A),
                       .shape = shapes.fx,
@@ -688,7 +694,7 @@ void WorldView::drawShots(gamelib::draw::DrawList& list, const Shapes& shapes, c
                       srgb(0xFFF6C8).withAlpha(0.6f - 0.2f * k), srgb(0xFFC84A).withAlpha(0.6f - 0.2f * k), 0.0f, 0.0f,
                       static_cast<float>(s.id) + time * 4.0f + k);
             }
-            addFx(list, shapes, Fx::Star, s.position, 140.0f, srgb(0xFFF6C8).scaled(1.6f), srgb(0xFFC84A).scaled(1.3f), 0.0f, 0.0f,
+            addFx(list, shapes, Fx::Star, s.position, 180.0f, srgb(0xFFF6C8).scaled(1.6f), srgb(0xFFC84A).scaled(1.3f), 0.0f, 0.0f,
                   static_cast<float>(s.id));
             continue;
         }
