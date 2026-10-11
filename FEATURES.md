@@ -42,8 +42,8 @@ What Wayfarer does today, checked by running it. Updated with each feature.
   drop better loot.
 - Five guardians with telegraphed attack patterns, phases and arenas:
   Grandcap, Rumblerock, Queen Murkshell, the Lantern Warden and the Hush.
-- Defeating the Hush ends the journey with a sunset scene, the journey's
-  statistics and credits.
+- Defeating the Hush ends the journey with everyone cheering in front of
+  Hearthvale under fireworks, the journey's statistics and the credits.
 
 ## Town and story
 
