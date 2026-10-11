@@ -232,6 +232,18 @@ void WayfarerGame::drawEnding(gamelib::draw::DrawList& list, const float time) c
               .params = {0.0f, 0.0f, 2.0f, 0.3f}, .bits = 0});
     list.add({.rect = {0.0f, 80.0f, W, H}, .color = look.near, .color2 = look.nearRim, .shape = m_shapes.backdrop,
               .params = {200.0f, 0.0f, 3.0f, 0.3f}, .bits = 0});
+    // Hearthvale behind them, lamps lit for the festival.
+    list.setLayer(gamelib::draw::layers::Parallax + 10);
+    const std::array<std::pair<int, float>, 6> houses{{{7, 0.08f}, {0, 0.24f}, {2, 0.42f}, {5, 0.6f}, {3, 0.78f}, {6, 0.94f}}};
+    for (const auto& [style, at] : houses) {
+        const float size = 520.0f;
+        list.add({.rect = {W * at - size * 0.5f, H - 150.0f - size * (122.0f / 128.0f) + 30.0f, size, size},
+                  .color = gamelib::core::lerp(srgb(0xFFF1D6), look.far, 0.35f),
+                  .color2 = gamelib::core::lerp(style == 0 ? srgb(0xEC5662) : style == 5 ? srgb(0xF0924E) : srgb(0x7C6CD8), look.far, 0.3f),
+                  .shape = m_shapes.building,
+                  .params = {static_cast<float>(style), 0.8f, 0.35f, 0.0f},
+                  .bits = static_cast<std::uint64_t>(style == 7 ? 15 : style == 5 ? 3 : 0) | static_cast<std::uint64_t>(style * 41) << 8});
+    }
     // The ground.
     list.setLayer(gamelib::draw::layers::TilesBehind);
     list.add({.rect = {-10.0f, H - 150.0f, W + 20.0f, 220.0f}, .color = srgb(0x8FD46A), .color2 = srgb(0xB57E52), .shape = m_shapes.terrain,
@@ -307,10 +319,18 @@ void WayfarerGame::drawEnding(gamelib::draw::DrawList& list, const float time) c
         "Wayfarer", "", "a small journey in five regions", "", "every picture drawn by shaders", "every note synthesized",
         "", "built on GameLib", "", "thank you for playing", "", "see you on the road!"};
     const float scroll = std::max(0.0f, m_endingTime - 3.0f) * 40.0f;
-    float cy = H + 40.0f - scroll;
+    const float floor = H - 430.0f; // above the cheering cast
+    float cy = floor + 40.0f - scroll;
     for (const std::string_view c : credits) {
-        if (cy > -60.0f && cy < H) {
-            const float edge = std::min({1.0f, (cy + 60.0f) / 160.0f, (H - cy) / 160.0f});
+        if (cy > -60.0f && cy < floor) {
+            const float edge = std::min({1.0f, (cy + 60.0f) / 160.0f, (floor - cy) / 120.0f});
+            if (!c.empty()) {
+                // A soft ribbon behind each line keeps it readable over the roofs.
+                const float size = c == "Wayfarer" ? 48.0f : 26.0f;
+                const float w = ui::textWidth(c, size) + 48.0f;
+                addUi(list, m_shapes, Ui::Tooltip, {W - 230.0f - w * 0.5f, cy - 10.0f, w, size * 1.3f + 16.0f},
+                      srgb(0x3A2E4A, 0.55f * std::max(edge, 0.0f)), srgb(0x3A2E4A, 0.0f));
+            }
             ui::text(list, c, W - 230.0f, cy, {.size = c == "Wayfarer" ? 48.0f : 26.0f, .color = srgb(0xFFFFFF, std::max(edge, 0.0f)), .weight = 1.5f,
                                                .align = Align::Center, .outline = true});
         }
