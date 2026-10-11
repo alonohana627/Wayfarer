@@ -24,38 +24,7 @@ float textWidth(const std::string_view str, const float size)
 
 std::vector<std::string> wrap(const std::string_view str, const float size, const float width)
 {
-    std::vector<std::string> lines;
-    std::string line;
-    std::string word;
-    const auto flushWord = [&] {
-        if (word.empty()) {
-            return;
-        }
-        const std::string candidate = line.empty() ? word : line + " " + word;
-        if (!line.empty() && textWidth(candidate, size) > width) {
-            lines.push_back(line);
-            line = word;
-        } else {
-            line = candidate;
-        }
-        word.clear();
-    };
-    for (const char c : str) {
-        if (c == ' ') {
-            flushWord();
-        } else if (c == '\n') {
-            flushWord();
-            lines.push_back(line);
-            line.clear();
-        } else {
-            word += c;
-        }
-    }
-    flushWord();
-    if (!line.empty()) {
-        lines.push_back(line);
-    }
-    return lines;
+    return gamelib::draw::wrapVectorText(str, size, width);
 }
 
 float paragraph(gamelib::draw::DrawList& list, const std::string_view str, const float x, const float y, const float width,
