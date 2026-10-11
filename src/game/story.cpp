@@ -207,7 +207,8 @@ DialogueTree buildTree()
                 "colors. Climb Frostcrown Peak, wayfarer, and bring them home.",
                 "The last waystone is yours. Whatever you find up there, Hearthvale is with you.",
                 "The Hush waits at the Crown of Frost, above the ice caves."}},
-              {},
+              {{kQuestChapter1, "Grandcap is calm again? Bless you. The old fellow only wanted his songs back. Brann has "
+                                "been asking after you - go and see him at the forge."}},
               {{"chapter 6", "Listen... birdsong, bells, laughter. You brought it all back. Stay as long as you like."},
                {"night", "The stars are out. Lumi will be up on her hill, I expect. Get some rest at the inn, too."},
                {"chapter 1", "The forest is just beyond the green waystone. Mind the bellcaps; they bounce."},
