@@ -69,7 +69,8 @@ What Wayfarer does today, checked by running it. Updated with each feature.
 
 ## Menus and saves
 
-- A title menu with three save slots and controls rebinding, with the forest
-  played by a demo bot behind it (or `--demo`).
+- A title menu with three save slots, sound, music, screen shake, fullscreen
+  and vsync settings and controls rebinding, with the forest played by a demo
+  bot behind it (or `--demo`).
 - Saves of the character, the bag, the gear, the quests, the world and the
   journey's statistics, written on entering town and resting.
