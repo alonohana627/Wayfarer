@@ -22,18 +22,8 @@ using game::EventKind;
 
 constexpr float kPi = std::numbers::pi_v<float>;
 
-// Damage number kinds, carried in the number's color.
+// Damage number kinds (fx::DamageNumbers::Number::kind): they pick the digits' colors.
 enum class NumberKind { Hit, Crit, Hurt, Heal, Mana };
-
-Color numberTag(const NumberKind k)
-{
-    return {static_cast<float>(k) / 10.0f, 0.0f, 0.0f, 1.0f};
-}
-
-NumberKind numberKind(const Color c)
-{
-    return static_cast<NumberKind>(std::lround(c.r * 10.0f));
-}
 
 void numberColors(const NumberKind k, Color& top, Color& bottom)
 {
@@ -61,6 +51,15 @@ void numberColors(const NumberKind k, Color& top, Color& bottom)
     }
 }
 
+// A number's top color (words are drawn in it).
+Color numberTop(const NumberKind k)
+{
+    Color top;
+    Color bottom;
+    numberColors(k, top, bottom);
+    return top;
+}
+
 std::string itemName(const int item)
 {
     const auto* def = game::itemRegistry().find(item);
@@ -70,8 +69,10 @@ std::string itemName(const int item)
 } // namespace
 
 Effects::Effects()
-    : m_numbers{{.pixelSize = 5.0f, .criticalScale = 1.45f, .pop = 0.6f, .popSeconds = 0.14f, .life = 1.05f, .rise = 70.0f,
-                 .fadeFrom = 0.7f, .stackSpacing = 62.0f, .stackSeconds = 0.6f}}
+    : m_numbers{{.font = gamelib::draw::Font::vector(31.0f, 1.8f).withShadow(
+                     {.color = srgb(0x3A2A40, 0.9f), .offset = {0.0f, 0.0f}, .weight = 4.0f}),
+                 .criticalScale = 1.45f, .pop = 0.6f, .popSeconds = 0.14f, .life = 1.05f, .rise = 70.0f, .fadeFrom = 0.7f,
+                 .stackSpacing = 62.0f, .stackSeconds = 0.6f, .digitHeight = 45.0f, .digitAdvance = 0.6f, .digitBob = 0.05f}}
     , m_sparks{400, {0.0f, 900.0f}, 0.4f, 7}
     , m_petals{200, {0.0f, 60.0f}, 0.6f, 11}
 {
@@ -148,8 +149,8 @@ void Effects::react(const game::Event& e, const game::Session& s)
     }
     case EventKind::Hit: {
         const NumberKind kind = e.crit ? NumberKind::Crit : NumberKind::Hit;
-        m_numbers.add(static_cast<long long>(e.value), e.at + Vec2{0.0f, -20.0f}, numberTag(kind), e.crit,
-                      static_cast<std::uint64_t>(std::lround(e.at.x / 50.0f)) + 1000);
+        m_numbers.add(static_cast<long long>(e.value), e.at + Vec2{0.0f, -20.0f}, numberTop(kind), e.crit,
+                      static_cast<std::uint64_t>(std::lround(e.at.x / 50.0f)) + 1000, static_cast<int>(kind));
         spot({.at = e.at + Vec2{0.0f, 30.0f}, .kind = Fx::Spark, .size = e.crit ? 320.0f : 230.0f,
               .core = srgb(0xFFFFFF).scaled(1.4f), .edge = e.crit ? srgb(0xFFB040) : srgb(0xFFE6A0), .seed = e.at.x * 0.13f},
              0.28f);
@@ -161,7 +162,8 @@ void Effects::react(const game::Event& e, const game::Session& s)
     }
     case EventKind::Guarded:
         spot({.at = e.at, .kind = Fx::Spark, .size = 120.0f, .core = srgb(0xD8E8FF), .edge = srgb(0x88A8FF)}, 0.25f);
-        m_numbers.add("guard", e.at + Vec2{0.0f, -40.0f}, numberTag(NumberKind::Mana));
+        m_numbers.add("guard", e.at + Vec2{0.0f, -40.0f}, numberTop(NumberKind::Mana), false,
+                      gamelib::fx::DamageNumbers::kNoTarget, static_cast<int>(NumberKind::Mana));
         break;
     case EventKind::MonsterDown: {
         const auto colors = monsterColors(static_cast<game::SpeciesId>(e.value), e.extra != 0);
@@ -171,7 +173,8 @@ void Effects::react(const game::Event& e, const game::Session& s)
         break;
     }
     case EventKind::Hurt:
-        m_numbers.add(static_cast<long long>(e.value), e.at + Vec2{0.0f, -30.0f}, numberTag(NumberKind::Hurt), false, 1);
+        m_numbers.add(static_cast<long long>(e.value), e.at + Vec2{0.0f, -30.0f}, numberTop(NumberKind::Hurt), false, 1,
+                      static_cast<int>(NumberKind::Hurt));
         m_flash.trigger(0.35f);
         m_flashColor = srgb(0xFF5A6A, 0.35f);
         m_shake.trigger(0.7f * m_shakeScale);
@@ -179,7 +182,7 @@ void Effects::react(const game::Event& e, const game::Session& s)
              0.25f);
         break;
     case EventKind::Heal:
-        m_numbers.add("+" + std::to_string(e.value), e.at + Vec2{0.0f, -60.0f}, numberTag(NumberKind::Heal), false, 2);
+        m_numbers.add("+" + std::to_string(e.value), e.at + Vec2{0.0f, -60.0f}, numberTop(NumberKind::Heal), false, 2, static_cast<int>(NumberKind::Heal));
         for (int i = 0; i < 14; ++i) {
             m_petals.burst(feet + Vec2{static_cast<float>(i - 7) * 10.0f, -10.0f}, 1,
                            {.direction = {-kPi * 0.85f, -kPi * 0.15f}, .speed = {120.0f, 320.0f}, .size = {18.0f, 28.0f},
@@ -192,7 +195,8 @@ void Effects::react(const game::Event& e, const game::Session& s)
     case EventKind::Potion:
         if (e.onHero) {
             m_numbers.add("+" + std::to_string(e.value), e.at + Vec2{0.0f, -60.0f},
-                          numberTag(e.extra == 0 ? NumberKind::Heal : NumberKind::Mana), false, 2);
+                          numberTop(e.extra == 0 ? NumberKind::Heal : NumberKind::Mana), false, 2,
+                          static_cast<int>(e.extra == 0 ? NumberKind::Heal : NumberKind::Mana));
             spot({.at = Vec2{0.0f, -50.0f}, .kind = Fx::Plus, .size = 100.0f,
                   .core = e.extra == 0 ? srgb(0xFFD0D8) : srgb(0xD0E4FF),
                   .edge = e.extra == 0 ? srgb(0xFF6A7A) : srgb(0x6A9AFF), .attached = true},
@@ -434,38 +438,18 @@ void Effects::drawFront(gamelib::draw::DrawList& list, const Shapes& shapes, con
 
     // Damage numbers: chunky outlined digits, stacked per target, never darkened by the night.
     list.setLayer(gamelib::draw::layers::Hud);
-    for (const auto& n : m_numbers.numbers()) {
-        const gamelib::fx::DamageNumbers::Shown shown = m_numbers.shown(n);
-        if (shown.alpha <= 0.0f) {
-            continue;
-        }
+    m_numbers.draw(list, [&shapes](gamelib::draw::DrawList& out, const gamelib::fx::DamageNumbers::Number& n, const char ch,
+                                   const gamelib::core::Rect& cell, const float alpha) {
         Color top;
         Color bottom;
-        numberColors(numberKind(n.color), top, bottom);
-        const float h = shown.pixelSize * 9.0f;
-        const float advance = h * 0.6f;
-        const bool word = !n.text.empty() && (n.text[0] < '0' || n.text[0] > '9') && n.text[0] != '+';
-        if (word) {
-            gamelib::draw::drawVectorText(list, n.text, shown.center.x, shown.center.y - h * 0.4f,
-                                          {.size = h * 0.7f, .color = top.withAlpha(shown.alpha), .weight = 1.8f,
-                                           .align = gamelib::draw::Align::Center,
-                                           .shadow = {.color = bottom.scaled(0.4f).withAlpha(shown.alpha), .offset = {0.0f, 0.0f}, .weight = 4.0f}});
-            continue;
-        }
-        const float width = advance * static_cast<float>(n.text.size());
-        float x = shown.center.x - width * 0.5f + advance * 0.5f;
-        for (std::size_t i = 0; i < n.text.size(); ++i) {
-            const char ch = n.text[i];
-            const float digit = ch == '+' ? 10.0f : static_cast<float>(ch - '0');
-            const float bob = (i % 2 == 0 ? -1.0f : 1.0f) * h * 0.05f;
-            list.add({.rect = {x - h * 0.5f, shown.center.y - h * 0.5f + bob, h, h},
-                      .color = top.withAlpha(shown.alpha),
-                      .color2 = bottom,
-                      .shape = shapes.ui,
-                      .params = {static_cast<float>(Ui::Digit), digit, 0.0f, 0.0f}});
-            x += advance;
-        }
-    }
+        numberColors(static_cast<NumberKind>(n.kind), top, bottom);
+        const float digit = ch == '+' || ch == '-' ? 10.0f : static_cast<float>(ch - '0');
+        out.add({.rect = cell,
+                 .color = top.withAlpha(alpha),
+                 .color2 = bottom,
+                 .shape = shapes.ui,
+                 .params = {static_cast<float>(Ui::Digit), digit, 0.0f, 0.0f}});
+    });
     // Pickup and level-up popups.
     for (const auto& item : m_popups) {
         const Popup& p = item.value;

@@ -1470,6 +1470,10 @@ void Session::tickShots()
             }
             continue;
         }
+        // Steer only toward what is still ahead; with nothing ahead fly straight on
+        // (a star that pierced its target doesn't turn back and dive).
+        s.target = s.position + s.velocity * 60.0f;
+        const float ahead = s.velocity.x < 0.0f ? -1.0f : 1.0f;
         float best = 760.0f;
         for (const Monster& m : m_monsters) {
             if (!m.alive() || m.state == MonsterState::Spawn) {
@@ -1477,14 +1481,14 @@ void Session::tickShots()
             }
             const Vec2 d = m.box.center() - s.position;
             const float dist = std::sqrt(d.x * d.x + d.y * d.y);
-            if (dist < best && d.x * s.velocity.x > -40.0f) {
+            if (dist < best && d.x * ahead > 30.0f) {
                 best = dist;
                 s.target = m.box.center();
             }
         }
         if (m_boss && m_boss->alive()) {
             const Vec2 d = m_boss->box.center() - s.position;
-            if (std::sqrt(d.x * d.x + d.y * d.y) < best) {
+            if (std::sqrt(d.x * d.x + d.y * d.y) < best && d.x * ahead > -20.0f) {
                 s.target = m_boss->box.center();
             }
         }
