@@ -47,38 +47,52 @@ void WayfarerGame::drawMenu(gamelib::draw::DrawList& list, const float time) con
     if (menu == nullptr || menu->items().empty()) {
         return;
     }
+    using gamelib::draw::Font;
     const bool title = m_menus.is(ArcadeScreen::Title);
-    const float rowH = 54.0f;
-    const float w = 520.0f;
-    const float h = rowH * static_cast<float>(menu->items().size()) + (title ? 24.0f : 100.0f);
-    const float x = static_cast<float>(m_canvas.width) * 0.5f - w * 0.5f;
-    const float y = title ? 520.0f : static_cast<float>(m_canvas.height) * 0.5f - h * 0.5f;
+    // GameLib lays the menu out; the window, its title bar and the rows are
+    // Wayfarer's shader frames. The menu's own title is laid out but not
+    // drawn (transparent): the window's bar shows it (none on the title screen).
+    constexpr float kTitleSize = 32.0f;
+    const std::string barTitle = title ? std::string{} : lower(menu->title());
+    gamelib::ui::MenuStyle style{
+        .veil = title ? Color{0.0f, 0.0f, 0.0f, 0.0f} : srgb(0x1A1428, 0.45f),
+        .title = srgb(0xFFFFFF, 0.0f),
+        .text = ui_color::kSoftInk,
+        .highlight = ui_color::kInk,
+        .dim = ui_color::kSoftInk,
+        .titleFont = Font::vector(title ? 0.01f : kTitleSize, 1.7f).lowered(),
+        .itemFont = Font::vector(30.0f, 1.35f).lowered(),
+        .selectedWeight = 1.7f / 1.35f,
+        .itemHeight = 54.0f,
+        .padding = title ? 14.0f : 12.0f,
+        .minWidth = 520.0f,
+        .titleGap = title ? 0.0f : 56.0f - 0.75f * kTitleSize,
+        .top = title ? 520.0f : -1.0f,
+        .rowInset = 18.0f,
+        .labelIndent = 68.0f,
+        .valueInset = 36.0f,
+        .valueFont = Font::vector(28.0f, 1.5f).lowered(),
+        .valueHighlight = srgb(0xB07A1A),
+        .panelPainter =
+            [this, title, &barTitle](gamelib::draw::DrawList& out, const Rect& rect) {
+                if (title) {
+                    addUi(out, m_shapes, Ui::Window, rect.expanded(10.0f), srgb(0xFFF7E8), ui_color::kTitle, 0.0f, 0.0f);
+                } else {
+                    (void)ui::window(out, m_shapes, rect, barTitle);
+                }
+            },
+        .rowPainter =
+            [this, time](gamelib::draw::DrawList& out, const Rect& row, const std::size_t, const bool selected) {
+                if (!selected) {
+                    return;
+                }
+                const Rect pill{row.x, row.y + 4.0f, row.width, row.height - 8.0f};
+                addUi(out, m_shapes, Ui::Button, pill, ui_color::kButton, ui_color::kGold, 1.0f);
+                addUi(out, m_shapes, Ui::Arrow, {pill.x + 14.0f + std::sin(time * 7.0f) * 3.0f, pill.center().y - 12.0f, 24.0f, 24.0f},
+                      ui_color::kGold, ui_color::kGold);
+            }};
     list.setLayer(kScreenLayer);
-    Rect inner{x, y, w, h};
-    if (!title) {
-        list.box({0.0f, 0.0f, static_cast<float>(m_canvas.width), static_cast<float>(m_canvas.height)}, srgb(0x1A1428, 0.45f));
-        inner = ui::window(list, m_shapes, {x, y, w, h}, "paused");
-    } else {
-        addUi(list, m_shapes, Ui::Window, Rect{x, y, w, h}.expanded(10.0f), srgb(0xFFF7E8, 1.0f), ui_color::kTitle, 0.0f, 0.0f);
-        inner = {x + 18.0f, y + 14.0f, w - 36.0f, h - 28.0f};
-    }
-    for (std::size_t i = 0; i < menu->items().size(); ++i) {
-        const auto& item = menu->items()[i];
-        const bool sel = i == menu->selected();
-        const Rect row{inner.x, inner.y + static_cast<float>(i) * rowH, inner.width, rowH - 8.0f};
-        if (sel) {
-            addUi(list, m_shapes, Ui::Button, row, ui_color::kButton, ui_color::kGold, 1.0f);
-            addUi(list, m_shapes, Ui::Arrow, {row.x + 14.0f + std::sin(time * 7.0f) * 3.0f, row.center().y - 12.0f, 24.0f, 24.0f},
-                  ui_color::kGold, ui_color::kGold);
-        }
-        ui::text(list, lower(item.label), row.x + 50.0f, row.y + 6.0f,
-                 {.size = 30.0f, .color = sel ? ui_color::kInk : ui_color::kSoftInk, .weight = sel ? 1.7f : 1.35f});
-        if (item.isSetting()) {
-            const std::string value = lower(item.value());
-            ui::text(list, sel ? "< " + value + " >" : value, row.right() - 18.0f, row.y + 6.0f,
-                     {.size = 28.0f, .color = sel ? srgb(0xB07A1A) : ui_color::kSoftInk, .weight = 1.5f, .align = Align::Right});
-        }
-    }
+    gamelib::ui::drawMenu(list, *menu, m_canvas, style);
 }
 
 void WayfarerGame::drawControls(gamelib::draw::DrawList& list, const float time) const
@@ -136,38 +150,55 @@ void WayfarerGame::drawTitle(gamelib::draw::DrawList& list, const float time) co
 
 void WayfarerGame::drawSlots(gamelib::draw::DrawList& list, const float time) const
 {
-    const float W = static_cast<float>(m_canvas.width);
-    list.setLayer(kScreenLayer - 1);
-    list.box({0.0f, 0.0f, W, static_cast<float>(m_canvas.height)}, srgb(0x1A1428, 0.3f));
-    list.setLayer(kScreenLayer);
-    const Rect win{W * 0.5f - 520.0f, 200.0f, 1040.0f, 640.0f};
-    const Rect in = ui::window(list, m_shapes, win, "choose your journey");
-    const auto& rows = m_slotList.rows();
-    for (int i = 0; i <= static_cast<int>(rows.size()); ++i) {
-        const bool sel = m_slotList.cursor() == i;
-        const bool back = i == static_cast<int>(rows.size());
-        const Rect row{in.x, in.y + static_cast<float>(i) * 128.0f, in.width, back ? 70.0f : 116.0f};
-        if (back) {
-            ui::button(list, m_shapes, {row.center().x - 140.0f, row.y + 6.0f, 280.0f, 62.0f}, "back", sel);
-            continue;
-        }
-        addUi(list, m_shapes, Ui::Button, row, sel ? srgb(0xFFF0CC) : srgb(0xF6EAD2), ui_color::kGold, sel ? 1.0f : 0.0f);
-        const auto& r = rows[static_cast<std::size_t>(i)];
-        addUi(list, m_shapes, Ui::Frame, {row.x + 20.0f, row.y + 14.0f, 88.0f, 88.0f}, sel ? srgb(0xFFD86A) : srgb(0xE8DCC4), ui_color::kWhite);
-        ui::text(list, std::to_string(i + 1), row.x + 64.0f, row.y + 30.0f, {.size = 44.0f, .color = ui_color::kInk, .weight = 2.0f, .align = Align::Center});
-        if (m_slotList.confirmingErase() == i) {
-            ui::text(list, "erase this journey? press left again", row.x + 140.0f, row.y + 36.0f,
-                     {.size = 30.0f, .color = ui_color::kBad, .weight = 1.6f});
-        } else if (!r.exists) {
-            ui::text(list, "a new journey", row.x + 140.0f, row.y + 36.0f, {.size = 32.0f, .color = ui_color::kSoftInk, .weight = 1.5f});
-        } else if (!r.readable) {
-            ui::text(list, "this page is torn (damaged)", row.x + 140.0f, row.y + 36.0f, {.size = 30.0f, .color = ui_color::kBad, .weight = 1.4f});
-        } else {
-            ui::text(list, lower(r.summary), row.x + 140.0f, row.y + 22.0f, {.size = 32.0f, .color = ui_color::kInk, .weight = 1.6f});
-            ui::text(list, sel ? "left: erase" : "", row.x + 140.0f, row.y + 66.0f, {.size = 21.0f, .color = ui_color::kSoftInk});
-        }
-    }
     (void)time;
+    using gamelib::draw::Font;
+    // GameLib's slot list with Wayfarer's window, rows and number frames.
+    constexpr float kTitleSize = (68.0f - 1.5f * 20.0f) / 0.75f; // rows start under the window's title bar
+    const int slots = m_slotList.slotCount();
+    gamelib::ui::SaveSlotStyle style{
+        .menu = {.veil = srgb(0x1A1428, 0.3f),
+                 .title = srgb(0xFFFFFF, 0.0f),
+                 .text = ui_color::kSoftInk,
+                 .highlight = ui_color::kInk,
+                 .dim = ui_color::kSoftInk,
+                 .titleFont = Font::vector(kTitleSize, 1.7f),
+                 .padding = 20.0f,
+                 .top = 200.0f,
+                 .rowInset = 18.0f,
+                 .panelPainter = [this](gamelib::draw::DrawList& out,
+                                        const Rect& rect) { (void)ui::window(out, m_shapes, rect, "choose your journey"); },
+                 .rowPainter =
+                     [this, slots](gamelib::draw::DrawList& out, const Rect& row, const std::size_t index, const bool selected) {
+                         if (static_cast<int>(index) == slots) {
+                             addUi(out, m_shapes, Ui::Button, {row.center().x - 140.0f, row.center().y - 31.0f, 280.0f, 62.0f},
+                                   ui_color::kButton, ui_color::kGold, selected ? 1.0f : 0.0f);
+                             return;
+                         }
+                         addUi(out, m_shapes, Ui::Button, row, selected ? srgb(0xFFF0CC) : srgb(0xF6EAD2), ui_color::kGold,
+                               selected ? 1.0f : 0.0f);
+                         addUi(out, m_shapes, Ui::Frame, {row.x + 20.0f, row.center().y - 44.0f, 88.0f, 88.0f},
+                               selected ? srgb(0xFFD86A) : srgb(0xE8DCC4), ui_color::kWhite);
+                         ui::text(out, std::to_string(index + 1), row.x + 64.0f, row.center().y - 28.0f,
+                                  {.size = 44.0f, .color = ui_color::kInk, .weight = 2.0f, .align = Align::Center});
+                         const auto& r = m_slotList.rows()[index];
+                         if (selected && r.exists && r.readable && m_slotList.confirmingErase() != static_cast<int>(index)) {
+                             ui::text(out, "left: erase", row.right() - 26.0f, row.center().y - 11.0f,
+                                      {.size = 21.0f, .color = ui_color::kSoftInk, .align = Align::Right});
+                         }
+                     }},
+        .danger = ui_color::kBad,
+        .width = 1040.0f,
+        .rowHeight = 128.0f,
+        .nameFont = Font::vector(26.0f, 1.5f).lowered(),
+        .lineFont = Font::vector(32.0f, 1.5f).lowered(),
+        .textIndent = 158.0f};
+    const gamelib::ui::SaveSlotLabels labels{.slot = "",
+                                             .empty = "a new journey",
+                                             .damaged = "this page is torn (damaged)",
+                                             .erase = "erase this journey? press left again",
+                                             .back = "back"};
+    list.setLayer(kScreenLayer);
+    gamelib::ui::drawSaveSlots(list, m_slotList, m_canvas, style, labels, "");
 }
 
 void WayfarerGame::drawFainted(gamelib::draw::DrawList& list, const float time) const

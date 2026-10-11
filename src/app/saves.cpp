@@ -47,13 +47,7 @@ IniFile write(const game::SaveData& d)
     gamelib::app::writeSkillBook(c.skills, ini, "skills");
     gamelib::app::writeInventory(c.bag, ini, "bag");
     gamelib::app::writeEquipment(c.gear, ini, "gear");
-    for (const auto& q : d.quests) {
-        std::string line = std::to_string(static_cast<int>(q.state));
-        for (const int p : q.progress) {
-            line += " " + std::to_string(p);
-        }
-        ini.set("quests", std::to_string(q.quest), line);
-    }
+    gamelib::app::writeQuestRecords(d.quests, ini, "quests");
     ini.setInt("world", "map", static_cast<int>(d.map));
     ini.setInt("world", "x", static_cast<long long>(d.feet.x));
     ini.setInt("world", "y", static_cast<long long>(d.feet.y));
@@ -96,19 +90,7 @@ game::SaveData read(const IniFile& ini)
     c.refreshResources();
     c.hp.current = std::clamp(ini.getInt("hero", "hp", 1, 99999).value_or(c.hp.max), 1, c.hp.max);
     c.mp.current = std::clamp(ini.getInt("hero", "mp", 0, 99999).value_or(c.mp.max), 0, c.mp.max);
-    for (const auto& [key, value] : ini.entries("quests")) {
-        gamelib::core::QuestRecord r;
-        std::from_chars(key.data(), key.data() + key.size(), r.quest);
-        std::istringstream in{std::string{value}};
-        int state = 0;
-        in >> state;
-        r.state = static_cast<gamelib::core::QuestState>(std::clamp(state, 0, 4));
-        int p = 0;
-        while (in >> p) {
-            r.progress.push_back(p);
-        }
-        d.quests.push_back(r);
-    }
+    d.quests = gamelib::app::readQuestRecords(ini, "quests");
     d.map = static_cast<game::MapId>(ini.getInt("world", "map", 0, game::kMapCount - 1).value_or(0));
     d.feet = {static_cast<float>(ini.getInt("world", "x").value_or(800)), static_cast<float>(ini.getInt("world", "y").value_or(1000))};
     d.clock = std::max<long long>(0, ini.getInt("world", "clock").value_or(0));

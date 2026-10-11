@@ -325,12 +325,85 @@ void Windows::draw(gamelib::draw::DrawList& list, const Shapes& shapes, const ga
 
 void Windows::drawStats(gamelib::draw::DrawList& list, const Shapes& shapes, const game::Session& s, const float time) const
 {
+    using gamelib::draw::Font;
     const game::Character& c = s.character();
     const float pop = popIn(m_age);
     const Rect win{430.0f, 120.0f + (1.0f - pop) * 30.0f, 1060.0f, 820.0f};
-    const Rect in = ui::window(list, shapes, win, "character");
-    // The portrait.
-    const Rect portrait{in.x + 10.0f, in.y + 10.0f, 330.0f, 420.0f};
+    const bool can = c.points.available() > 0;
+    const auto bounceOf = [this](const int row) {
+        float bounce = 0.0f;
+        for (const auto& f : m_flash) {
+            if (f.value.row == row) {
+                bounce = std::sin(f.progress() * 3.14159f) * 8.0f;
+            }
+        }
+        return bounce;
+    };
+    // GameLib lays the window out and writes its text; the frames, rows,
+    // icons, buttons and the portrait are Wayfarer's. (The title is laid
+    // out tiny and transparent: the window's title bar shows it.)
+    const gamelib::ui::StatWindowStyle style{
+        .panel = {.painter = [&](gamelib::draw::DrawList& out, const Rect& rect) { (void)ui::window(out, shapes, rect, "character"); }},
+        .titleFont = Font::vector(2.7f, 1.0f),
+        .font = Font::vector(30.0f, 1.55f),
+        .smallFont = Font::vector(26.0f, 1.35f),
+        .title = srgb(0xFFFFFF, 0.0f),
+        .text = ui_color::kInk,
+        .dim = ui_color::kSoftInk,
+        .highlight = ui_color::kInk,
+        .better = ui_color::kGood,
+        .worse = ui_color::kBad,
+        .padding = 40.0f,
+        .rowHeight = 76.0f,
+        .lineHeight = 40.0f,
+        .portraitWidth = 330.0f,
+        .pointsScale = can ? 1.0f + 0.08f * std::sin(time * 6.0f) : 1.0f,
+        .rowPainter =
+            [&](gamelib::draw::DrawList& out, const Rect& row, const std::size_t index, const bool selected) {
+                if (index == static_cast<std::size_t>(game::kCoreCount)) {
+                    addUi(out, shapes, Ui::Button, {row.x, row.y + 7.0f, row.width, row.height - 14.0f}, ui_color::kButton, ui_color::kGold,
+                          !can ? 3.0f : selected ? 1.0f : 0.0f);
+                } else if (selected) {
+                    addUi(out, shapes, Ui::Button, {row.x, row.y + 3.0f, row.width, row.height - 6.0f}, srgb(0xFFF0CC), ui_color::kGold, 1.0f);
+                }
+            },
+        .iconSize = 56.0f,
+        .icon =
+            [&](gamelib::draw::DrawList& out, const Rect& cell, const std::size_t stat, const bool) {
+                addIcon(out, shapes, Ui::StatIcon, {cell.center().x, cell.center().y - bounceOf(static_cast<int>(stat))}, 56.0f,
+                        static_cast<float>(stat), 0.0f, ui_color::kWhite, ui_color::kWhite);
+            },
+        .plusPainter =
+            [&](gamelib::draw::DrawList& out, const Rect& button, const bool enabled, const bool selected) {
+                addUi(out, shapes, Ui::Button, button, enabled ? srgb(0xFFD86A) : srgb(0xE8E0D0), ui_color::kGold,
+                      enabled ? (selected ? 1.0f : 0.0f) : 3.0f);
+            }};
+
+    const game::Derived now = s.derived();
+    const game::CoreStats preview = m_cursor < 4 ? c.points.preview(static_cast<game::Core>(m_cursor)) : c.points.base();
+    const game::Derived next = c.derivedWith(preview);
+    std::vector<gamelib::ui::StatLine> stats;
+    for (int i = 0; i < game::kCoreCount; ++i) {
+        const auto core = static_cast<game::Core>(i);
+        stats.push_back({.name = std::string{game::coreName(core)}, .value = c.points.base()[core],
+                         .bonus = now.core[core] - c.points.base()[core]});
+    }
+    const std::array<gamelib::ui::DerivedLine, 8> derived{{
+        {"max hp", now.maxHp, next.maxHp},
+        {"max mp", now.maxMp, next.maxMp},
+        {"attack", now.attack, next.attack},
+        {"magic", now.magic, next.magic},
+        {"defense", now.defense, next.defense},
+        {"critical", now.crit, next.crit, true},
+        {"speed", now.speed, next.speed, true},
+        {"jump", now.jump, next.jump, true},
+    }};
+    const float bottom = gamelib::ui::drawStatWindow(list, m_statWindow, win, "character", c.points.available(), stats, derived, style,
+                                                     {.points = "ability points", .autoAssign = "auto-assign"});
+
+    // The portrait column: the avatar in a well, the name, level and experience.
+    const Rect column = gamelib::ui::statWindowPortraitRect(win, style);
+    const Rect portrait{column.x, column.y, column.width, 420.0f};
     ui::well(list, shapes, portrait);
     anime::Avatar a = heroAvatar(c);
     a.feet = {portrait.center().x, portrait.bottom() - 28.0f};
@@ -349,74 +422,11 @@ void Windows::drawStats(gamelib::draw::DrawList& list, const Shapes& shapes, con
     ui::text(list, c.level >= game::kMaxLevel ? "max level" : std::format("{} exp to go", ui::groupDigits(c.xpToNext())),
              portrait.center().x, xp.bottom() + 8.0f, {.size = 22.0f, .color = ui_color::kSoftInk, .align = Align::Center});
 
-    // The core stats.
-    const float x0 = portrait.right() + 40.0f;
-    const float w = in.right() - x0;
-    float y = in.y + 4.0f;
-    ui::text(list, "ability points", x0, y, {.size = 28.0f, .color = ui_color::kInk, .weight = 1.6f});
-    const float pulse = c.points.available() > 0 ? 1.0f + 0.08f * std::sin(time * 6.0f) : 1.0f;
-    ui::text(list, std::to_string(c.points.available()), in.right() - 10.0f, y - (pulse - 1.0f) * 20.0f,
-             {.size = 34.0f * pulse, .color = c.points.available() > 0 ? srgb(0xE0901E) : ui_color::kSoftInk, .weight = 2.0f, .align = Align::Right});
-    y += 56.0f;
-    const game::Derived now = s.derived();
-    const game::CoreStats preview = m_cursor < 4 ? c.points.preview(static_cast<game::Core>(m_cursor)) : c.points.base();
-    const game::Derived next = c.derivedWith(preview);
-    for (int i = 0; i < game::kCoreCount; ++i) {
-        const auto core = static_cast<game::Core>(i);
-        const Rect row{x0, y, w, 70.0f};
-        const bool sel = m_cursor == i;
-        float bounce = 0.0f;
-        for (const auto& f : m_flash) {
-            if (f.value.row == i) {
-                bounce = std::sin(f.progress() * 3.14159f) * 8.0f;
-            }
-        }
-        if (sel) {
-            addUi(list, shapes, Ui::Button, row.expanded(4.0f), srgb(0xFFF0CC), ui_color::kGold, 1.0f);
-        }
-        addIcon(list, shapes, Ui::StatIcon, {row.x + 38.0f, row.center().y - bounce}, 56.0f, static_cast<float>(i), 0.0f, ui_color::kWhite,
-                ui_color::kWhite);
-        ui::text(list, game::coreName(core), row.x + 80.0f, row.y + 16.0f, {.size = 30.0f, .color = ui_color::kInk, .weight = 1.5f});
-        const int gearBonus = now.core[core] - c.points.base()[core];
-        const std::string value = gearBonus > 0 ? std::format("{} (+{})", c.points.base()[core], gearBonus) : std::to_string(c.points.base()[core]);
-        ui::text(list, value, row.right() - 90.0f, row.y + 14.0f - bounce, {.size = 32.0f, .color = ui_color::kInk, .weight = 1.8f, .align = Align::Right});
-        // The "+" button.
-        const bool can = c.points.available() > 0;
-        addUi(list, shapes, Ui::Button, {row.right() - 66.0f, row.y + 10.0f, 56.0f, 50.0f}, can ? srgb(0xFFD86A) : srgb(0xE8E0D0),
-              ui_color::kGold, can ? (sel ? 1.0f : 0.0f) : 3.0f);
-        ui::text(list, "+", row.right() - 38.0f, row.y + 8.0f, {.size = 40.0f, .color = can ? ui_color::kInk : ui_color::kSoftInk, .weight = 2.4f, .align = Align::Center});
-        y += 78.0f;
-    }
-    const Rect autoBtn{x0, y + 6.0f, w, 62.0f};
-    ui::button(list, shapes, autoBtn, "auto-assign", m_cursor == 4, c.points.available() > 0);
-    y += 92.0f;
-
-    // Derived values with the preview of a point on the selected stat.
-    const auto line = [&](const std::string_view name, const int a, const int b, const bool percent, const float lx, const float ly) {
-        ui::text(list, name, lx, ly, {.size = 26.0f, .color = ui_color::kSoftInk, .weight = 1.3f});
-        const std::string v = percent ? std::format("{}%", a) : ui::groupDigits(a);
-        ui::text(list, v, lx + 300.0f, ly, {.size = 28.0f, .color = ui_color::kInk, .weight = 1.6f, .align = Align::Right});
-        if (b != a && c.points.available() > 0 && m_cursor < 4) {
-            const std::string d = percent ? std::format("> {}%", b) : std::format("> {}", ui::groupDigits(b));
-            ui::text(list, d, lx + 312.0f, ly, {.size = 24.0f, .color = ui_color::kGood, .weight = 1.6f});
-        }
-    };
-    const float colB = x0 + w * 0.5f + 10.0f;
-    line("max hp", now.maxHp, next.maxHp, false, x0, y);
-    line("max mp", now.maxMp, next.maxMp, false, colB, y);
-    y += 40.0f;
-    line("attack", now.attack, next.attack, false, x0, y);
-    line("magic", now.magic, next.magic, false, colB, y);
-    y += 40.0f;
-    line("defense", now.defense, next.defense, false, x0, y);
-    line("critical", now.crit, next.crit, true, colB, y);
-    y += 40.0f;
-    line("speed", now.speed, next.speed, true, x0, y);
-    line("jump", now.jump, next.jump, true, colB, y);
-    y += 52.0f;
     // What the selected stat does.
-    const std::string_view about = m_cursor < 4 ? coreText(static_cast<game::Core>(m_cursor)) : "Spend every point the balanced way: STR 2 : AGI 1 : VIT 1 : MAG 1.";
-    ui::paragraph(list, about, x0, y, w, {.size = 24.0f, .color = ui_color::kSoftInk});
+    const float x0 = column.right() + style.padding;
+    const std::string_view about = m_cursor < 4 ? coreText(static_cast<game::Core>(m_cursor))
+                                                : "Spend every point the balanced way: STR 2 : AGI 1 : VIT 1 : MAG 1.";
+    ui::paragraph(list, about, x0, bottom + 10.0f, win.right() - style.padding - x0, {.size = 24.0f, .color = ui_color::kSoftInk});
 }
 
 void Windows::drawSkills(gamelib::draw::DrawList& list, const Shapes& shapes, const game::Session& s,
@@ -549,9 +559,8 @@ void Windows::drawInventory(gamelib::draw::DrawList& list, const Shapes& shapes,
     const Rect card{equip.x, equip.bottom() + 24.0f, kInvWindow.width - 60.0f, win.bottom() - equip.bottom() - 54.0f};
     ui::well(list, shapes, card);
     if (!sel.empty()) {
-        const IconLook icon = itemIcon(sel.item);
-        addIcon(list, shapes, Ui::ItemIcon, {card.x + 60.0f, card.y + 60.0f}, 96.0f, icon.id, icon.style, icon.a, icon.b);
-        ui::itemCard(list, shapes, {card.x + 130.0f, card.y + 10.0f, 560.0f, card.height - 20.0f}, sel, c, m_cursor >= game::kSlotCount);
+        ui::itemCard(list, shapes, {card.x + 12.0f, card.y + 12.0f, 690.0f, card.height - 24.0f}, sel, c, m_cursor >= game::kSlotCount,
+                     96.0f);
         const game::ItemInfo& info = game::itemInfo(sel.item);
         std::string hint;
         if (m_cursor < game::kSlotCount) {

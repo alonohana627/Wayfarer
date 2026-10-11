@@ -109,7 +109,7 @@ private:
     Effects m_effects;
     Hud m_hud;
     Windows m_windows;
-    DialogueView m_dialogue;
+    DialogueView m_dialogue{m_shapes};
     std::unique_ptr<gamelib::core::DialogueRunner> m_runner;
     std::optional<std::string> m_pendingService;
     gamelib::ui::Transition m_transition;

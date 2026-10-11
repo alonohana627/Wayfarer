@@ -51,9 +51,10 @@ void keyCap(gamelib::draw::DrawList& list, const Shapes& shapes, Vec2 center, st
 void gauge(gamelib::draw::DrawList& list, const Shapes& shapes, Rect rect, float fill, float trail, Color color, Color trailColor);
 
 // The item card: name, kind, level, stats and bonus lines, the price and
-// (for equipment) the difference to what is worn.
+// (for equipment) the difference to what is worn; with an iconSize, the
+// item's icon at the top left and the text beside it.
 float itemCard(gamelib::draw::DrawList& list, const Shapes& shapes, Rect rect, const gamelib::core::ItemStack& stack,
-               const game::Character& character, bool compare);
+               const game::Character& character, bool compare, float iconSize = 0.0f);
 
 // "1 234" style numbers.
 [[nodiscard]] std::string groupDigits(long long value);

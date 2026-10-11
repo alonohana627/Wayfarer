@@ -109,9 +109,8 @@ std::string groupDigits(const long long value)
 }
 
 float itemCard(gamelib::draw::DrawList& list, const Shapes& shapes, const Rect rect, const gamelib::core::ItemStack& stack,
-               const game::Character& character, const bool compare)
+               const game::Character& character, const bool compare, const float iconSize)
 {
-    (void)shapes;
     if (stack.empty()) {
         return 0.0f;
     }
@@ -164,7 +163,13 @@ float itemCard(gamelib::draw::DrawList& list, const Shapes& shapes, const Rect r
                                            .warning = ui_color::kBad,
                                            .better = ui_color::kGood,
                                            .worse = ui_color::kBad,
-                                           .gap = 14.0f};
+                                           .gap = 14.0f,
+                                           .iconSize = iconSize};
+    if (iconSize > 0.0f) {
+        const Rect cell = gamelib::ui::itemCardIconRect(rect, style);
+        const IconLook icon = itemIcon(stack.item);
+        addIcon(list, shapes, Ui::ItemIcon, cell.center(), iconSize, icon.id, icon.style, icon.a, icon.b);
+    }
     return gamelib::ui::drawItemCard(list, card, rect, style);
 }
 
