@@ -670,13 +670,25 @@ void WorldView::drawShots(gamelib::draw::DrawList& list, const Shapes& shapes, c
     for (const auto& s : session.shots().items()) {
         if (s.extra.hero) {
             const float ang = std::atan2(s.velocity.y, s.velocity.x);
-            list.add({.rect = {s.position.x - 90.0f, s.position.y - 20.0f, 90.0f, 40.0f},
-                      .color = srgb(0xFFF2B0).withAlpha(0.8f),
+            // A long glowing tail, two fading after-stars and the star.
+            Vec2 back = gamelib::core::normalized(s.velocity) * -1.0f;
+            if (back.x == 0.0f && back.y == 0.0f) {
+                back = {-1.0f, 0.0f};
+            }
+            const Vec2 tail = s.position + back * 110.0f;
+            list.add({.rect = {tail.x - 110.0f, tail.y - 36.0f, 220.0f, 72.0f},
+                      .color = srgb(0xFFF2B0).withAlpha(0.85f),
                       .color2 = srgb(0xFFC84A),
                       .shape = shapes.fx,
                       .rotation = ang,
-                      .params = {static_cast<float>(Fx::Streak), 0.3f, 0.0f, 0.0f}});
-            addFx(list, shapes, Fx::Star, s.position, 92.0f, srgb(0xFFF6C8).scaled(1.5f), srgb(0xFFC84A).scaled(1.2f), 0.0f, 0.0f,
+                      .params = {static_cast<float>(Fx::Streak), 0.2f, 0.0f, 0.0f}});
+            for (int i = 1; i <= 2; ++i) {
+                const float k = static_cast<float>(i);
+                addFx(list, shapes, Fx::Star, s.position + back * (70.0f * k), 110.0f - 30.0f * k,
+                      srgb(0xFFF6C8).withAlpha(0.6f - 0.2f * k), srgb(0xFFC84A).withAlpha(0.6f - 0.2f * k), 0.0f, 0.0f,
+                      static_cast<float>(s.id) + time * 4.0f + k);
+            }
+            addFx(list, shapes, Fx::Star, s.position, 140.0f, srgb(0xFFF6C8).scaled(1.6f), srgb(0xFFC84A).scaled(1.3f), 0.0f, 0.0f,
                   static_cast<float>(s.id));
             continue;
         }
@@ -875,7 +887,7 @@ void WorldView::draw(gamelib::draw::DrawList& list, const Shapes& shapes, const 
     // A Tailwind swirl around the hero while it lasts.
     if (session.character().buffs.active(game::kTailwindBuff)) {
         list.setLayer(kLayerHero + 1);
-        addFx(list, shapes, Fx::Wind, feet + Vec2{0.0f, -62.0f}, 190.0f, srgb(0xE8FFF4).withAlpha(0.55f), srgb(0x9AF0C8), 0.0f);
+        addFx(list, shapes, Fx::Wind, feet + Vec2{0.0f, -62.0f}, 250.0f, srgb(0xE8FFF4).withAlpha(0.7f), srgb(0x9AF0C8), 0.0f);
     }
     drawShots(list, shapes, session, time);
     list.setLayer(kLayerEffects);

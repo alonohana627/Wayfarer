@@ -233,9 +233,11 @@ void main()
         c = add(c, core, (1.0 - smoothstep(-20.0, 0.0, d)) * (1.0 - t) * 0.8);
     } else if (kind == 14) {
         // A streak (the hyper jump's trail): a soft capsule along +x.
-        float d = sdSegment(p, vec2(-56.0, 0.0), vec2(56.0, 0.0), 16.0 * (0.3 + 0.7 * smoothstep(-64.0, 64.0, p.x)));
+        // w = -1 mirrors it (an arc facing left).
+        vec2 ps = vec2(w < -0.5 ? -p.x : p.x, p.y);
+        float d = sdSegment(ps, vec2(-56.0, 0.0), vec2(56.0, 0.0), 16.0 * (0.3 + 0.7 * smoothstep(-64.0, 64.0, ps.x)));
         c = add(c, edge, glowFalloff(d, 14.0) * 0.6 * (1.0 - t));
-        c = add(c, core, (1.0 - smoothstep(-2.0, 2.0, d)) * (1.0 - t) * smoothstep(-64.0, 40.0, p.x));
+        c = add(c, core, (1.0 - smoothstep(-2.0, 2.0, d)) * (1.0 - t) * smoothstep(-64.0, 40.0, ps.x));
     } else {
         // A heal sparkle: a soft plus.
         vec2 q = abs(p);

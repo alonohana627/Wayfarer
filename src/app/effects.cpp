@@ -200,9 +200,15 @@ void Effects::react(const game::Event& e, const game::Session& s)
         }
         break;
     case EventKind::HyperJump:
-        spot({.at = e.at, .kind = Fx::Shockwave, .size = 220.0f, .core = srgb(0xFFFFFF), .edge = srgb(0x9FE6FF).scaled(1.3f)},
+        spot({.at = e.at, .kind = Fx::Shockwave, .size = 340.0f, .core = srgb(0xFFFFFF), .edge = srgb(0x9FE6FF).scaled(1.3f)},
              0.4f);
-        m_sparks.burst(e.at + Vec2{0.0f, 30.0f}, 12,
+        if (e.value == 0) {
+            // The forward burst leaves a streak of wind behind the hero.
+            addArc({.offset = e.at + Vec2{static_cast<float>(-facing) * 90.0f, -60.0f}, .facing = facing, .attached = false,
+                    .core = srgb(0xFFFFFF).scaled(1.4f), .edge = srgb(0x9FE6FF).scaled(1.2f), .size = 300.0f, .kind = Fx::Streak},
+                   0.35f);
+        }
+        m_sparks.burst(e.at + Vec2{0.0f, 30.0f}, 22,
                        {.direction = e.value != 0 ? gamelib::fx::Range{kPi * 0.3f, kPi * 0.7f}
                                                   : gamelib::fx::Range{facing > 0 ? kPi * 0.8f : -kPi * 0.2f,
                                                                        facing > 0 ? kPi * 1.2f : kPi * 0.2f},
@@ -234,20 +240,38 @@ void Effects::react(const game::Event& e, const game::Session& s)
                    0.62f);
             m_shake.trigger(0.4f * m_shakeScale);
         } else if (skill == game::SkillId::Tailwind) {
-            spot({.at = Vec2{0.0f, -60.0f}, .kind = Fx::Shockwave, .size = 300.0f, .core = srgb(0xFFFFFF),
+            spot({.at = Vec2{0.0f, -60.0f}, .kind = Fx::Shockwave, .size = 460.0f, .core = srgb(0xFFFFFF),
                   .edge = srgb(0x9AF0C8).scaled(1.3f), .attached = true},
-                 0.6f);
-            m_petals.burst(feet + Vec2{0.0f, -40.0f}, 18,
+                 0.7f);
+            m_petals.burst(feet + Vec2{0.0f, -40.0f}, 32,
                            {.speed = {200.0f, 420.0f}, .size = {10.0f, 18.0f}, .life = {0.5f, 0.9f}, .spin = {-6.0f, 6.0f},
                             .color = srgb(0xB8F8D8)});
         } else if (skill == game::SkillId::Starbolt) {
-            spot({.at = e.at + Vec2{static_cast<float>(facing) * 40.0f, -14.0f}, .kind = Fx::Spark, .size = 160.0f,
-                  .core = srgb(0xFFFFFF).scaled(1.4f), .edge = srgb(0xFFD86A)},
-                 0.25f);
+            spot({.at = e.at + Vec2{static_cast<float>(facing) * 40.0f, -14.0f}, .kind = Fx::Spark, .size = 260.0f,
+                  .core = srgb(0xFFFFFF).scaled(1.5f), .edge = srgb(0xFFD86A).scaled(1.2f)},
+                 0.3f);
+            const float ahead = facing > 0 ? 0.0f : kPi;
+            m_sparks.burst(e.at + Vec2{static_cast<float>(facing) * 40.0f, -60.0f}, 14,
+                           {.direction = {ahead - 0.6f, ahead + 0.6f}, .speed = {250.0f, 600.0f}, .size = {4.0f, 9.0f},
+                            .life = {0.25f, 0.5f}, .color = srgb(0xFFE89A)});
         } else if (skill == game::SkillId::Bloom) {
-            spot({.at = Vec2{0.0f, -10.0f}, .kind = Fx::Shockwave, .size = 340.0f, .core = srgb(0xFFFFFF),
+            // A wide pink ring, a ring of petals round the hero, a heal plus
+            // and petals rising.
+            spot({.at = Vec2{0.0f, -10.0f}, .kind = Fx::Shockwave, .size = 520.0f, .core = srgb(0xFFFFFF),
                   .edge = srgb(0xFF9EC8).scaled(1.3f), .attached = true},
+                 0.9f);
+            for (int i = 0; i < 8; ++i) {
+                const float a = static_cast<float>(i) * kPi / 4.0f;
+                spot({.at = Vec2{std::cos(a) * 130.0f, -70.0f + std::sin(a) * 75.0f}, .kind = Fx::Petal, .size = 72.0f,
+                      .core = i % 2 == 0 ? srgb(0xFFC8DE) : srgb(0xFFF2B0), .edge = srgb(0xFF7AAE), .seed = a, .attached = true},
+                     1.1f);
+            }
+            spot({.at = Vec2{0.0f, -160.0f}, .kind = Fx::Plus, .size = 150.0f, .core = srgb(0xFFF0F6), .edge = srgb(0xFF7AAE),
+                  .attached = true},
                  0.8f);
+            m_petals.burst(feet + Vec2{0.0f, -30.0f}, 28,
+                           {.direction = {-kPi * 0.95f, -kPi * 0.05f}, .speed = {180.0f, 460.0f}, .size = {10.0f, 18.0f},
+                            .life = {0.7f, 1.2f}, .spin = {-5.0f, 5.0f}, .color = srgb(0xFFB8D4)});
         }
         break;
     }
