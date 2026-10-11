@@ -14,6 +14,7 @@
 
 #include <gamelib/core/camera.hpp>
 #include <gamelib/draw/draw_list.hpp>
+#include <gamelib/fx/banners.hpp>
 #include <gamelib/fx/transients.hpp>
 #include <gamelib/platform/actions.hpp>
 #include <gamelib/ui/hud.hpp>
@@ -51,15 +52,11 @@ private:
         std::string text;
         Color color;
     };
-    struct Title {
-        std::string name;
-        std::string region;
-    };
     gamelib::ui::BarTrail m_hp{0.5f, 0.6f};
     gamelib::ui::BarTrail m_mp{0.5f, 0.6f};
     gamelib::ui::BarTrail m_boss{0.6f, 0.4f};
     gamelib::fx::Transients<Toast> m_toasts;
-    gamelib::fx::Transients<Title> m_title;
+    gamelib::fx::Banners m_banner; // the map title
     float m_xpShown = 0.0f;
     float m_coinsShown = 0.0f;
     struct Line {

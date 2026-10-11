@@ -39,7 +39,7 @@ void Hud::reset(const game::Session& s)
     m_xpShown = s.character().xpProgress();
     m_coinsShown = static_cast<float>(s.character().coins);
     m_toasts.clear();
-    m_title.clear();
+    m_banner.clear();
     if (s.boss()) {
         m_boss.reset(1.0f);
     }
@@ -52,10 +52,9 @@ void Hud::toast(std::string text, const Color color)
 
 void Hud::mapTitle(const game::Session& s)
 {
-    m_title.clear();
     const game::MapDef& def = s.map();
-    m_title.add({.name = std::string{def.name}, .region = def.region == game::Region::Town ? "home" : std::string{game::regionName(def.region)}},
-                3.2f);
+    m_banner.show(std::string{def.name}, def.region == game::Region::Town ? "home" : std::string{game::regionName(def.region)},
+                  srgb(0xFFFFFF), 3.2f);
 }
 
 void Hud::react(const game::Event& e, const game::Session& s)
@@ -106,7 +105,7 @@ void Hud::update(const float seconds, const game::Session& s)
         m_boss.update(seconds);
     }
     m_toasts.update(seconds);
-    m_title.update(seconds);
+    m_banner.update(seconds);
     // The XP bar fills smoothly (wrapping round on a level-up).
     const float xp = s.character().xpProgress();
     if (xp < m_xpShown - 0.001f) {
@@ -439,23 +438,24 @@ void Hud::draw(gamelib::draw::DrawList& list, const Shapes& shapes, const game::
     drawTracker(list, shapes, s, canvas);
     drawBoss(list, shapes, s, canvas, time);
     const float W = static_cast<float>(canvas.width);
-    // The map title, eased in and out.
-    for (const auto& item : m_title) {
-        const float t = item.progress();
-        const float in = gamelib::core::easeOutBack(std::min(t * 5.0f, 1.0f));
-        // A short, clean fade that lifts the banner away; nothing is drawn once
-        // it is nearly gone, so no faint ghost lingers over the sky.
-        const float out = gamelib::core::smoothstep(0.8f, 0.96f, t);
-        const float alpha = (1.0f - out) * (1.0f - out);
-        if (alpha < 0.03f) {
-            continue;
-        }
-        const float y = 180.0f - (1.0f - in) * 30.0f - out * 24.0f;
-        ui::text(list, item.value.region, W * 0.5f, y - 44.0f,
-                 {.size = 30.0f, .color = srgb(0xFFF2D8, alpha), .weight = 1.5f, .align = Align::Center, .outline = true});
-        ui::text(list, item.value.name, W * 0.5f, y,
-                 {.size = 66.0f * (0.85f + 0.15f * in), .color = srgb(0xFFFFFF, alpha), .weight = 2.3f, .align = Align::Center, .outline = true});
-    }
+    // The map title: the region over the name, grown in, then a short clean
+    // fade that lifts it away (nothing drawn once nearly gone).
+    const gamelib::draw::VectorTextShadow outline{.color = srgb(0x2A1E30, 0.9f), .offset = {0.0f, 0.0f}, .weight = 4.9f};
+    const gamelib::fx::BannerStyle bannerStyle{.top = 180.0f,
+                                               .titleFont = gamelib::draw::Font::vector(66.0f, 2.3f).withShadow(outline),
+                                               .lineFont = gamelib::draw::Font::vector(30.0f, 1.5f).withShadow(outline),
+                                               .lineGap = 44.0f,
+                                               .lineAbove = true,
+                                               .lineColor = srgb(0xFFF2D8),
+                                               .inSeconds = 0.64f,
+                                               .growFrom = 0.85f,
+                                               .slide = 30.0f,
+                                               .fadeOutFrom = 0.8f,
+                                               .fadeOutTo = 0.96f,
+                                               .fadePower = 2.0f,
+                                               .lift = 24.0f,
+                                               .cutoff = 0.03f};
+    m_banner.draw(list, W * 0.5f, bannerStyle);
     // Toasts, newest at the bottom.
     float y = static_cast<float>(canvas.height) - 230.0f;
     int index = 0;

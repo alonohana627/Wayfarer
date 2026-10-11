@@ -812,7 +812,11 @@ void WorldView::drawLabels(gamelib::draw::DrawList& list, const Shapes& shapes, 
     const Rect view = visible();
     const auto tag = [&](const std::string_view text, const Vec2 where, const Color fill, const Color ink, const float size) {
         const float w = gamelib::draw::vectorTextWidth(text, size) + size * 0.9f;
-        // Kept inside the view, so a tag at the screen's edge stays readable.
+        // Tags of things off screen are not drawn; one at the screen's edge is
+        // pushed inside so it stays readable.
+        if (where.x < view.left() || where.x > view.right()) {
+            return;
+        }
         const Vec2 at{std::clamp(where.x, view.left() + w * 0.5f + 16.0f, view.right() - w * 0.5f - 16.0f), where.y};
         addUi(list, shapes, Ui::Tooltip, {at.x - w * 0.5f - 10.0f, at.y - 10.0f, w + 20.0f, size * 1.25f + 20.0f}, fill, fill.scaled(0.7f));
         gamelib::draw::drawVectorText(list, text, at.x, at.y + size * 0.12f, {.size = size, .color = ink, .weight = 1.25f, .align = Align::Center});

@@ -183,18 +183,7 @@ bool Session::night() const
 
 float Session::nightAmount() const
 {
-    const float hour = static_cast<float>(m_clock.minuteOfDay()) / 60.0f;
-    // Dusk 17:30-20:00, dawn 4:30-6:30.
-    if (hour >= 17.5f && hour < 20.0f) {
-        return (hour - 17.5f) / 2.5f;
-    }
-    if (hour >= 20.0f || hour < 4.5f) {
-        return 1.0f;
-    }
-    if (hour >= 4.5f && hour < 6.5f) {
-        return 1.0f - (hour - 4.5f) / 2.0f;
-    }
-    return 0.0f;
+    return m_clock.nightAmount(); // dusk 17:30-20:00, dawn 4:30-6:30
 }
 
 bool Session::waystoneOpen(const int region) const

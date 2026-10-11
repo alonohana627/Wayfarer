@@ -1,5 +1,7 @@
 #include "look.hpp"
 
+#include <gamelib/core/game_clock.hpp>
+
 #include <array>
 
 namespace wayfarer::app {
@@ -85,13 +87,13 @@ RegionLook regionLook(const Region region, const bool dungeon, const float night
     l.nearRim = lerp(d.nearRim, n.nearRim, t);
     l.light = lerp(d.light, n.light, t);
     l.ambient = lerp(d.ambient, n.ambient, t);
-    l.grade.tint = lerp(d.grade.tint, n.grade.tint, t);
+    l.grade = gamelib::draw::lerp(d.grade, n.grade, t);
     l.bloom = d.bloom + (n.bloom - d.bloom) * t;
     if (dungeon && region == Region::Mines) {
         l.ambient = srgb(0x7A6E98);
     }
     // Dusk: a warm horizon on the way to night.
-    const float dusk = std::clamp(1.0f - std::abs(t - 0.4f) / 0.4f, 0.0f, 1.0f);
+    const float dusk = gamelib::core::duskAmount(t);
     if (region != Region::Mines) {
         l.skyHorizon = lerp(l.skyHorizon, srgb(0xFFB48A), dusk * 0.7f);
         l.cloud = lerp(l.cloud, srgb(0xFFC8B0), dusk * 0.5f);
