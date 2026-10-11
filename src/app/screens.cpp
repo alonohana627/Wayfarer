@@ -291,7 +291,7 @@ void WayfarerGame::drawEnding(gamelib::draw::DrawList& list, const float time) c
              {.size = 32.0f, .color = srgb(0xFFFFFF, in), .weight = 1.4f, .align = Align::Center, .outline = true});
     const float statsIn = std::clamp((m_endingTime - 1.5f) / 1.0f, 0.0f, 1.0f);
     if (statsIn > 0.0f) {
-        const Rect panel{W * 0.5f - 420.0f, 250.0f, 840.0f, 360.0f};
+        const Rect panel{W * 0.5f - 420.0f, 250.0f, 840.0f, m_newBest ? 410.0f : 360.0f};
         addUi(list, m_shapes, Ui::Window, panel.expanded(10.0f), srgb(0xFFF7E8, 0.93f * statsIn), ui_color::kTitle, 0.0f, 0.0f);
         const std::array<std::pair<std::string, std::string>, 8> lines{{
             {"journey time", gamelib::core::formatClock(static_cast<int>(std::min<std::int64_t>(m_endStats.ticks, 359'999LL * 60)), game::kTickRate, 0)},
@@ -310,7 +310,7 @@ void WayfarerGame::drawEnding(gamelib::draw::DrawList& list, const float time) c
             y += 42.0f;
         }
         if (m_newBest) {
-            ui::text(list, "your fastest journey!", panel.center().x, panel.bottom() + 16.0f,
+            ui::text(list, "your fastest journey!", panel.center().x, panel.y + 362.0f,
                      {.size = 30.0f, .color = srgb(0xFFD86A, statsIn), .weight = 1.8f, .align = Align::Center, .outline = true});
         }
     }
@@ -319,7 +319,7 @@ void WayfarerGame::drawEnding(gamelib::draw::DrawList& list, const float time) c
         "Wayfarer", "", "a small journey in five regions", "", "every picture drawn by shaders", "every note synthesized",
         "", "built on GameLib", "", "thank you for playing", "", "see you on the road!"};
     const float scroll = std::max(0.0f, m_endingTime - 3.0f) * 40.0f;
-    const float floor = H - 430.0f; // above the cheering cast
+    const float floor = 420.0f; // in the sky band, above the roofs behind the cast
     float cy = floor + 40.0f - scroll;
     for (const std::string_view c : credits) {
         if (cy > -60.0f && cy < floor) {
