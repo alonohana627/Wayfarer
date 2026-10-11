@@ -543,10 +543,12 @@ void Windows::drawInventory(gamelib::draw::DrawList& list, const Shapes& shapes,
                      {.size = 20.0f, .color = srgb(0xFFE08A), .weight = 1.8f, .outline = true});
         }
     }
-    // Coins.
-    const float gridBottom = rects.back().bottom() + lift;
-    addIcon(list, shapes, Ui::Coin, {kInvGrid.x + 26.0f, gridBottom + 40.0f}, 44.0f, 0.0f, 0.0f, srgb(0xF6C845), srgb(0xFFFFFF));
-    ui::text(list, ui::groupDigits(c.coins), kInvGrid.x + 60.0f, gridBottom + 22.0f, {.size = 30.0f, .color = ui_color::kInk, .weight = 1.6f});
+    // Coins, beside the bag's top row (clear of the item card).
+    const Rect topRight = rects[static_cast<std::size_t>(game::kSlotCount + 5)];
+    const float coinX = (topRight.right() + win.right()) * 0.5f;
+    addIcon(list, shapes, Ui::Coin, {coinX, topRight.y + lift + 30.0f}, 50.0f, 0.0f, 0.0f, srgb(0xF6C845), srgb(0xFFFFFF));
+    ui::text(list, ui::groupDigits(c.coins), coinX, topRight.y + lift + 62.0f,
+             {.size = 28.0f, .color = ui_color::kInk, .weight = 1.6f, .align = Align::Center});
     // The selected item's card.
     const ItemStack& sel = m_cursor < game::kSlotCount ? c.gear.at(m_cursor) : c.bag.at(m_cursor - game::kSlotCount);
     const Rect card{equip.x, equip.bottom() + 24.0f, kInvWindow.width - 60.0f, win.bottom() - equip.bottom() - 54.0f};

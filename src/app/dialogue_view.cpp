@@ -167,7 +167,8 @@ void DialogueView::draw(gamelib::draw::DrawList& list, const Shapes& shapes, con
     ui::text(list, m_speaker, tag.center().x, tag.y + 10.0f,
              {.size = 30.0f, .color = srgb(0xFFFFFF), .weight = 1.7f, .align = ui::Align::Center, .outline = true});
     if (!m_role.empty()) {
-        ui::text(list, m_role, tag.right() + 14.0f, tag.y + 18.0f, {.size = 22.0f, .color = ui_color::kSoftInk});
+        // The role sits inside the box, under the tag's right end, never across the frame.
+        ui::text(list, m_role, tag.right() + 14.0f, box.y + 6.0f, {.size = 22.0f, .color = ui_color::kSoftInk, .weight = 1.3f});
     }
     // The text, typed out.
     float y = box.y + 34.0f;
