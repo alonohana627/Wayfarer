@@ -33,7 +33,7 @@ constexpr float kHyperUp = 15.0f;
 constexpr int kHyperLock = 12;
 constexpr int kDropLifetime = 90 * kTickRate;
 constexpr Vec2 kTalkReach{90.0f, 110.0f};
-constexpr float kInnDoorX = 26.0f * kTile;
+constexpr float kInnDoorX = 47.8f * kTile; // the inn door in Hearthvale (maps_town.cpp)
 
 int parseInt(std::string_view text)
 {
@@ -98,10 +98,10 @@ Session::Session(const std::uint64_t seed)
     m_char.mp.refill();
     m_clock.setTime(9, 0);
     refreshDerived();
-    m_hero.body.box = Rect::fromBottomCenter(feetOn(16.0f, 21), kHeroSize);
+    m_hero.body.box = Rect::fromBottomCenter(feetOn(28.0f, 21), kHeroSize);
     m_hero.body.facing = 1;
     m_hero.vulnerable = gamelib::core::Vulnerable{m_hero.body.box, 1};
-    enterMap(MapId::Town, feetOn(16.0f, 21), 1);
+    enterMap(MapId::Town, feetOn(28.0f, 21), 1);
     m_saveWanted = false;
 }
 

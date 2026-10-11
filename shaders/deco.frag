@@ -9,12 +9,12 @@
 // crystals, street lamps, fences, signposts, barrels, crates, flower pots,
 // a well, a bench, a mine cart, reeds, broken columns, the town gate's arch,
 // torches, the waystones, snow piles, lantern posts, banners, an anvil on a
-// stump and a market stall.
+// stump, a market stall, bunting strung over the street and a fountain.
 //
 // Design space: 128 units over the quad height, the ground on y = +58; the
 // width follows the quad (fences are wide).
 //   color   main tint (foliage, cap, paint)   color2  second tint
-//   params  x kind (game::DecoKind: 1 tree ... 27 stall), y lit 0..1 (night
+//   params  x kind (game::DecoKind: 1 tree ... 27 stall, 28 bunting, 29 fountain), y lit 0..1 (night
 //           lamps, an open waystone), z variant, w seed
 
 layout(location = 0) in vec2 inUv;
@@ -434,6 +434,91 @@ void stall(vec3 a, vec3 b, float seed)
     animeAwning(C, P, vec2(0.0, -46.0), 62.0, 16.0, a, b, 8.0);
 }
 
+// A string of pennants sagging between two anchors at the quad's top
+// corners (strung between houses over the street).
+void bunting(vec2 extent, float seed)
+{
+    float ex = extent.x - 4.0;
+    float x = clamp(P.x / ex, -1.0, 1.0);
+    float top = -46.0;
+    float sag = 24.0;
+    float stringY = top + sag * (1.0 - x * x);
+    if (abs(P.x) > ex + 2.0) {
+        return;
+    }
+    // The pennant under this pixel's cell (cells are wider than the flags).
+    float cellW = 22.0;
+    float cell = floor((P.x + ex) / cellW);
+    float cx = -ex + (cell + 0.5) * cellW;
+    float cxN = clamp(cx / ex, -1.0, 1.0);
+    float cy = top + sag * (1.0 - cxN * cxN);
+    float sway = sin(T * 2.4 + cell * 0.9 + seed) * 2.5;
+    uint pick = uint(mod(cell + floor(seed), 5.0));
+    vec3 col = pick == 0u ? animeHex(0xEC5662u) : pick == 1u ? animeHex(0xFAD65Eu) : pick == 2u ? animeHex(0x5C9CEEu)
+             : pick == 3u ? animeHex(0x6DBE57u) : animeHex(0xF39AB4u);
+    float flag = sdTriangle(P, vec2(cx - 8.0, cy), vec2(cx + 8.0, cy), vec2(cx + sway, cy + 19.0)) - 0.8;
+    animePart(C, flag, animeCloth(col));
+    animeStroke(C, abs(P.y - stringY), 1.4, animeHex(0x6A4A3Au));
+}
+
+// A round stone fountain: a wide basin with rippling water, a pillar with
+// an upper bowl and a spout, water arcs falling and sparkles.
+void fountain(float seed)
+{
+    AnimeMaterial stone = animeMatte(animeHex(0xD8D2E4u));
+    // The basin's back rim and the water in it.
+    float back = sdEllipse(P - vec2(0.0, G - 22.0), vec2(62.0, 7.0));
+    animePart(C, back, stone);
+    float pool = sdEllipse(P - vec2(0.0, G - 21.0), vec2(56.0, 4.5));
+    animeFlat(C, pool, mix(animeHex(0x5CB8E8u), animeHex(0xA8E8FFu), 0.5 + 0.5 * sin(P.x * 0.3 + T * 3.0)));
+    // The pillar, the upper bowl and the spout.
+    float pillar = sdRoundBox(P - vec2(0.0, G - 42.0), vec2(6.0, 20.0), 2.0);
+    animePart(C, pillar, stone);
+    float bowl = sdTrapezoid(P - vec2(0.0, G - 62.0), 10.0, 28.0, 6.0) - 2.0;
+    animePart(C, bowl, stone);
+    animeFlat(C, max(sdEllipse(P - vec2(0.0, G - 68.0), vec2(26.0, 2.5)), bowl - 0.5), animeHex(0x7CCCF4u));
+    animePart(C, sdCircle(P - vec2(0.0, G - 74.0), 4.5), stone);
+    // Water: a jet from the spout and arcs over the bowl's lips, drawn as
+    // moving droplets along their curves.
+    for (int side = -1; side <= 1; side += 2) {
+        float sx = float(side);
+        vec2 a = vec2(sx * 27.0, G - 66.0);
+        vec2 b = vec2(sx * 42.0, G - 70.0);
+        vec2 c = vec2(sx * 48.0, G - 24.0);
+        float arc = sdBezier(P, a, b, c);
+        C.color = over(vec4(vec3(0.75, 0.93, 1.0), animeCover(C, arc - 2.2) * 0.75), C.color);
+        for (int i = 0; i < 4; ++i) {
+            float t = fract(T * 0.9 + float(i) * 0.25 + seed * 0.1);
+            vec2 d = mix(mix(a, b, t), mix(b, c, t), t);
+            animeFlat(C, sdCircle(P - d, 2.2), vec3(1.0, 1.0, 1.1));
+        }
+        // Splash rings where the arcs land.
+        float ring = fract(T * 1.2 + sx * 0.3);
+        animeStroke(C, abs(sdEllipse(P - vec2(sx * 48.0, G - 21.0), vec2(4.0 + ring * 7.0, 1.2 + ring * 2.0))), 1.0 * (1.0 - ring),
+                    vec3(1.0));
+    }
+    float jet = sdSegment(P, vec2(0.0, G - 78.0), vec2(0.0, G - 92.0 - sin(T * 4.0) * 2.0), 1.8);
+    C.color = over(vec4(vec3(0.85, 0.97, 1.0), animeCover(C, jet) * 0.85), C.color);
+    for (int i = 0; i < 3; ++i) {
+        float t = fract(T * 1.1 + float(i) / 3.0);
+        vec2 d = vec2((float(i) - 1.0) * t * 12.0, G - 94.0 + t * t * 24.0 - t * 10.0);
+        animeFlat(C, sdCircle(P - d, 1.8), vec3(1.0, 1.0, 1.1));
+    }
+    // The basin's front wall, with stones.
+    float front = sdRoundBox(P - vec2(0.0, G - 9.0), vec2(64.0, 10.0), 6.0);
+    front = max(front, -sdEllipse(P - vec2(0.0, G - 22.0), vec2(60.0, 5.0)));
+    animePart(C, front, stone);
+    animeStones(C, P, front, stone, vec2(14.0, 9.0), seed);
+    animePart(C, sdRoundBox(P - vec2(0.0, G - 19.0), vec2(65.0, 2.6), 2.0), stone);
+    // Sparkles over the water.
+    for (int i = 0; i < 3; ++i) {
+        float t = fract(T * 0.7 + float(i) * 0.37);
+        vec2 sp = vec2(-40.0 + float(i) * 38.0 + sin(T + float(i)) * 6.0, G - 24.0);
+        float tw = sin(t * 3.1416);
+        animeFlat(C, max(abs(P.x - sp.x) * 3.0 + abs(P.y - sp.y), abs(P.y - sp.y) * 3.0 + abs(P.x - sp.x)) - 3.5 * tw, vec3(1.3));
+    }
+}
+
 void main()
 {
     SpriteData s = sprite;
@@ -477,6 +562,8 @@ void main()
     case 25: banner(a, seed); break;
     case 26: anvil(); break;
     case 27: stall(a, b, seed); break;
+    case 28: bunting(extent, seed); break;
+    case 29: fountain(seed); break;
     default: break;
     }
     outColor = animeFinish(C);

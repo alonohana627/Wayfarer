@@ -186,8 +186,6 @@ anime::Avatar npcAvatar(const game::NpcId npc)
         a.weapon = Weapon::Staff;
         a.eyes = 6;
         a.skin = 1;
-        a.expression = Expression::Happy;
-        a.nextExpression = Expression::Happy;
         break;
     case game::NpcId::Pippa:
         a.hairColor = srgb(0xF58FB5);
@@ -260,8 +258,6 @@ anime::Avatar npcAvatar(const game::NpcId npc)
         a.accent = Swatch::Red;
         a.eyes = 1;
         a.skin = 0;
-        a.expression = Expression::Happy;
-        a.nextExpression = Expression::Happy;
         break;
     case game::NpcId::Count: break;
     }

@@ -14,10 +14,11 @@
 // Design space: 128 x 128 units over the quad height, the ground on
 // y = +58; a square quad holds every style. anime_samples.hpp packs the fields.
 //   color   wall color          color2  roof color
-//   params  x style (0 inn, 1 shop, 2 cottage, 3 tree-top hut), y night 0..1
+//   params  x style (0 inn, 1 shop, 2 cottage, 3 tree-top hut, 4 forge,
+//           5 bakery, 6 observatory, 7 townhouse), y night 0..1
 //           (windows and lanterns lit), z wind -1..1 (smoke drift),
 //           w unused
-//   bits.x  0-3 sign icon (kAnimeIcon*), 8-15 seed (varies tiles, stones,
+//   bits.x  0-3 sign icon (kAnimeIcon*; 15 none on a townhouse), 8-15 seed (varies tiles, stones,
 //           flowers)
 
 layout(location = 0) in vec2 inUv;
@@ -239,6 +240,53 @@ void main()
         animePart(C, sdSegment(p, vec2(-25.0, 26.0), vec2(-31.0, 26.0), 1.1), animeMetal(animeHex(0x5E6070u)));
         animeSign(C, p, vec2(-36.0, 26.0), 7.5, kAnimeIconStar, animeMaterial(animeHex(0x3D4C92u)), time);
         animeLantern(C, p, vec2(20.0, 36.0), 3.0, night, time);
+    } else if (style == 7) {
+        // ---- A townhouse: narrow and tall, two floors under a steep tiled
+        // gable, timber on the upper floor, a little balcony with flowers,
+        // a round gable window and a chimney; the colors and the hashed
+        // details (which side the door is on, the chimney) vary by house.
+        float side = hashCell(vec2(seed, 1.7)) > 0.5 ? 1.0 : -1.0;
+        float chimney = sdRoundBox(p - vec2(-18.0 * side, -42.0), vec2(5.0, 12.0), 2.0);
+        animePart(C, chimney, stone);
+        animeStones(C, p, chimney, stone, vec2(5.0, 4.0), seed);
+        float wallD = sdRoundBox(p - vec2(0.0, 16.0), vec2(31.0, 41.0), 3.0);
+        animePart(C, wallD, wall);
+        animePlaster(C, p, wallD, wall, seed);
+        animeTimber(C, p, max(wallD + 1.0, p.y - 20.0), timber, 15.5, -24.0, 20.0, 1.0, seed);
+        float base = max(wallD, -(p.y - 42.0));
+        animePartNoLine(C, base, stone);
+        animeStones(C, p, base, stone, vec2(8.0, 5.0), seed + 1.0);
+        animeLine(C, max(abs(p.y - 42.0), wallD), stone.ink);
+        float roofD = sdRoundRoof(p, vec2(0.0, -20.0), 40.0, 44.0, 0.08, 5.0);
+        animeCastShadow(C, wallD, sdRoundRoof(p - vec2(2.0, 6.0), vec2(0.0, -20.0), 40.0, 44.0, 0.08, 5.0), wall);
+        animePart(C, roofD, roof);
+        animeRoofTiles(C, p, roofD, roof, 5.0, 7.0, seed);
+        animeGloss(C, p, roofD, vec2(-14.0, -44.0), vec2(9.0, 5.0), 0.25);
+        animeRoundWindow(C, p, vec2(0.0, -34.0), 5.0, night, frame);
+        // The upper floor: two windows over a balcony with a flower box.
+        AnimeMaterial sh = animeMaterial(animeHex(hashCell(vec2(seed, 4.1)) > 0.5 ? 0x5CA8C8u : 0x7CBF6Au));
+        animeWindow(C, p, vec2(-12.0, 4.0), 5.5, 14.0, night, 4.0, frame, sh, false, seed);
+        animeWindow(C, p, vec2(12.0, 4.0), 5.5, 14.0, night, 4.0, frame, sh, false, seed + 3.0);
+        float balcony = sdRoundBox(p - vec2(0.0, 8.0), vec2(26.0, 2.2), 1.5);
+        AnimeMaterial rail = animeMaterial(animeHex(0x8A5A3Cu));
+        float posts = max(abs(mod(p.x + 2.5, 5.0) - 2.5) - 0.8, max(abs(p.x) - 25.0, abs(p.y - 4.0) - 4.0));
+        animePart(C, posts, rail);
+        animePart(C, sdRoundBox(p - vec2(0.0, 0.0), vec2(26.0, 1.4), 1.0), rail);
+        animePart(C, balcony, rail);
+        for (int i = 0; i < 6; ++i) {
+            vec2 f = vec2(-22.0 + float(i) * 8.8, -2.5 + sin(float(i) * 2.3 + seed) * 1.0);
+            animePart(C, sdCircle(p - f, 2.6), animeMaterial(animePalette(uint(i % 3) * 3u + 2u)));
+        }
+        // The ground floor: a door on one side, a window on the other.
+        animeDoor(C, p, vec2(14.0 * side, ground - 1.5), 8.0, 21.0, doorWood, frame, night);
+        animeWindow(C, p, vec2(-14.0 * side, 48.0), 6.0, 12.0, night, 0.0, frame, sh, true, seed + 5.0);
+        animeLantern(C, p, vec2(2.0 * side, 30.0), 3.0, night, time);
+        if (icon != 15) {
+            animePart(C, sdSegment(p, vec2(31.0 * side, 26.0), vec2(37.0 * side, 26.0), 1.1), animeMetal(animeHex(0x5E6070u)));
+            animeSign(C, p, vec2(42.0 * side, 26.0), 7.5, icon, animeMaterial(animeHex(0xF4EEE0u)), time);
+        }
+        animeFlowerPot(C, p, vec2(-30.0 * side, ground), 5.0, animePalette(uint(seed) % 12u));
+        animeSmoke(C, p, vec2(-18.0 * side + wind, -56.0), 3.4, time, wind);
     } else {
         // ---- The tree-top hut: canopy behind, trunk and branches, a plank
         // deck with a rope railing, a round plank hut with a leaf roof.

@@ -339,8 +339,6 @@ void Windows::drawStats(gamelib::draw::DrawList& list, const Shapes& shapes, con
     a.height = 430.0f;
     a.facing = 1.0f;
     a.pose = anime::AvatarPose::Idle;
-    a.expression = anime::Expression::Happy;
-    a.nextExpression = anime::Expression::Happy;
     list.setLayer(kLayer + 1);
     list.add(anime::avatarSprite(a, shapes.avatar));
     list.setLayer(kLayer + 2);

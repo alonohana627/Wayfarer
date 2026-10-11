@@ -149,8 +149,9 @@ void DialogueView::draw(gamelib::draw::DrawList& list, const Shapes& shapes, con
         a.facing = 1.0f;
         a.pose = anime::AvatarPose::Idle;
         a.expression = anime::Expression::Neutral;
-        a.nextExpression = complete() ? anime::Expression::Happy : anime::Expression::Neutral;
-        a.blend = std::min(m_sinceComplete * 6.0f, 1.0f);
+        // Eyes stay open; a page finishing gets a brief happy smile as a reaction.
+        a.nextExpression = anime::Expression::Happy;
+        a.blend = complete() ? std::min(m_sinceComplete * 6.0f, 1.0f) * (1.0f - std::clamp((m_sinceComplete - 0.55f) * 5.0f, 0.0f, 1.0f)) : 0.0f;
         if (*m_portrait == game::NpcId::Brann) {
             a.nextExpression = anime::Expression::Determined;
         }

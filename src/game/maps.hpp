@@ -69,7 +69,7 @@ struct SpawnDef {
 
 enum class DecoKind : std::uint8_t {
     House, Tree, Pine, BigShroom, Bush, Flowers, Grass, Rock, Crystal, Lamp, Fence, Sign, Barrel, Crate, FlowerPot,
-    Well, Bench, Cart, Reeds, Column, Arch, Torch, Waystone, Snowpile, Lantern, Banner, Anvil, Stall, Count
+    Well, Bench, Cart, Reeds, Column, Arch, Torch, Waystone, Snowpile, Lantern, Banner, Anvil, Stall, Bunting, Fountain, Count
 };
 
 struct Deco {
@@ -109,6 +109,7 @@ struct MapDef {
     std::vector<Portal> portals;
     std::vector<SpawnDef> spawns;
     std::vector<Deco> decos;
+    std::vector<Deco> skyline; // a back row (houses, trees) on a parallax layer behind the street
     std::vector<NpcPlace> npcs;
     std::optional<Arena> arena;
     int eliteChance = 6;   // percent per spawn

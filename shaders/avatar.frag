@@ -39,7 +39,7 @@ uint gWeapon, gTop, gGloves;
 vec3 gAccent;
 AnimeMaterial gCloth, gForearm, gHand, gTrim, gSteel, gWood, gLeather;
 
-const uint kEyes[8] = uint[8](0x2F6FE0u, 0x23A866u, 0xE0952Au, 0x8E4FE0u, 0xD8323Fu, 0x14A6B4u, 0x6B4A3Au, 0xE05A9Au);
+const uint kEyes[8] = uint[8](0x2F6FE0u, 0x23A866u, 0xE0952Au, 0x8E4FE0u, 0xD8323Fu, 0x14A6B4u, 0x6B4A3Au, 0xB8327Au);
 const uint kSkins[4] = uint[4](0xFFE6D6u, 0xF8D2B6u, 0xDDA780u, 0x9E6A48u);
 
 // Slots.

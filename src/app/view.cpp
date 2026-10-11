@@ -26,6 +26,7 @@ namespace layers = gamelib::draw::layers;
 
 constexpr float kPi = std::numbers::pi_v<float>;
 constexpr float kAvatarQuad = 158.0f; // the hero is about 125 units tall
+constexpr int kLayerSkyline = -258; // under the light layer (kLayerDecoBack - 5)
 constexpr int kLayerDecoBack = -250;
 constexpr int kLayerHouses = -240;
 constexpr int kLayerClimb = -160;
@@ -89,6 +90,8 @@ DecoSize decoSize(const game::DecoKind k)
     case K::Banner: return {120.0f, 240.0f};
     case K::Anvil: return {130.0f, 120.0f};
     case K::Stall: return {260.0f, 240.0f};
+    case K::Bunting: return {520.0f, 130.0f}; // the width scales, the height doesn't
+    case K::Fountain: return {330.0f, 270.0f};
     case K::Count: break;
     }
     return {100.0f, 100.0f};
@@ -131,14 +134,26 @@ void decoColors(const game::DecoKind k, const game::Region r, const int variant,
     case K::Column: a = srgb(0xE6D2A6); break;
     case K::Arch: a = srgb(0xD8D2C4); break;
     case K::Banner: a = variant == 1 ? srgb(0x5CA8FF) : srgb(0xEC5662); break;
-    case K::Stall: a = srgb(0xF790B6); b = srgb(0xFFF6EA); break;
+    case K::Stall:
+        a = variant == 1 ? srgb(0x7CC8F0) : variant == 2 ? srgb(0x8CD06E) : srgb(0xF790B6);
+        b = srgb(0xFFF6EA);
+        break;
     default: break;
     }
 }
 
-// House colors (wall, roof) by style.
-void houseColors(const int style, Color& wall, Color& roof)
+// House colors (wall, roof) by style; a nonzero palette (Deco::variant / 16)
+// picks one of the town's storybook wall and roof pairs instead, so a street
+// of cottages and townhouses is varied.
+void houseColors(const int style, const int palette, Color& wall, Color& roof)
 {
+    if (palette > 0) {
+        static constexpr std::array<std::uint32_t, 8> kWalls{0xFFF1D6, 0xE2F4E4, 0xFFE2D2, 0xEAE4F0, 0xDDEEFA, 0xFFF6C8, 0xF8E0EC, 0xE8E0D0};
+        static constexpr std::array<std::uint32_t, 8> kRoofs{0xEC5662, 0x4E80E6, 0x6DBE57, 0xF2C460, 0x9A6AD8, 0xF0924E, 0x4FB8B0, 0xD86A8E};
+        wall = srgb(kWalls[static_cast<std::size_t>(palette - 1) % kWalls.size()]);
+        roof = srgb(kRoofs[static_cast<std::size_t>(palette * 3 - 1) % kRoofs.size()]);
+        return;
+    }
     switch (style) {
     case 0: wall = srgb(0xFFF1D6); roof = srgb(0xEC5662); break;  // inn
     case 1: wall = srgb(0xFDE6EE); roof = srgb(0x4E80E6); break;  // shop
@@ -440,34 +455,51 @@ void WorldView::drawDecos(gamelib::draw::DrawList& list, const Shapes& shapes, c
     const float night = session.nightAmount();
     const float lit = def.dungeon || def.region == game::Region::Mines ? 1.0f : gamelib::core::smoothstep(0.2f, 0.6f, night);
     const Rect vis = visible().expanded(300.0f);
-    int index = 0;
-    for (const game::Deco& d : def.decos) {
-        ++index;
+    const RegionLook look = regionLook(def.region, def.dungeon, night);
+    const auto drawOne = [&](const game::Deco& d, const int index, const Vec2 at, const bool skyline) {
         const DecoSize size = decoSize(d.kind);
         const float w = size.width * d.scale;
-        const float h = size.height * d.scale;
-        if (d.at.x + w < vis.left() || d.at.x - w > vis.right()) {
-            continue;
+        const float h = d.kind == game::DecoKind::Bunting ? size.height : size.height * d.scale;
+        if (at.x + w < vis.left() || at.x - w > vis.right()) {
+            return;
         }
+        // The back row sits in the haze of the far hills.
+        const auto haze = [&](const Color c) { return skyline ? gamelib::core::lerp(c, look.far, 0.5f) : c; };
         if (d.kind == game::DecoKind::House) {
+            const int style = d.variant & 15;
             Color wall;
             Color roof;
-            houseColors(d.variant, wall, roof);
-            list.setLayer(kLayerHouses);
-            list.add({.rect = {d.at.x - w * 0.5f, d.at.y - h * (122.0f / 128.0f), w, h},
-                      .color = wall,
-                      .color2 = roof,
+            houseColors(style, (d.variant >> 4) & 15, wall, roof);
+            const int signIcon = (d.variant >> 8) & 15;
+            const int icon = signIcon > 0 ? signIcon - 1 : style == 1 ? 1 : style == 7 ? 15 : 0; // the shop sells potions
+            list.setLayer(skyline ? kLayerSkyline : kLayerHouses);
+            list.add({.rect = {at.x - w * 0.5f, at.y - h * (122.0f / 128.0f), w, h},
+                      .color = haze(wall),
+                      .color2 = haze(roof),
                       .shape = shapes.building,
-                      .params = {static_cast<float>(d.variant), lit, 0.35f, 0.0f},
-                      .bits = static_cast<std::uint64_t>(index * 37 % 255) << 8});
-            continue;
+                      .params = {static_cast<float>(style), lit, 0.35f, 0.0f},
+                      .bits = static_cast<std::uint64_t>(icon) | static_cast<std::uint64_t>(index * 37 % 255) << 8});
+            return;
         }
         Color a;
         Color b;
         decoColors(d.kind, def.region, d.variant, a, b);
-        list.setLayer(d.front ? kLayerFront : kLayerDecoBack);
-        addDeco(list, shapes, static_cast<int>(d.kind), d.at, w, h, a, b, lit, static_cast<float>(d.variant),
+        list.setLayer(skyline ? kLayerSkyline : d.front ? kLayerFront : kLayerDecoBack);
+        addDeco(list, shapes, static_cast<int>(d.kind), at, w, h, haze(a), haze(b), lit, static_cast<float>(d.variant),
                 hashf(static_cast<float>(index)) * 10.0f);
+    };
+    // The back row moves at 65% of the camera: its home x lines up with the
+    // street when the camera is centered on it.
+    const float camX = visible().center().x;
+    int index = 0;
+    for (const game::Deco& d : def.skyline) {
+        ++index;
+        drawOne(d, index + 500, {camX + (d.at.x - camX) * 0.65f, d.at.y}, true);
+    }
+    index = 0;
+    for (const game::Deco& d : def.decos) {
+        ++index;
+        drawOne(d, index, d.at, false);
     }
 }
 
@@ -507,10 +539,6 @@ void WorldView::drawNpcs(gamelib::draw::DrawList& list, const Shapes& shapes, co
         const bool near = std::abs(dx) < 260.0f && std::abs(heroFeet.y - n.feet.y) < 160.0f;
         a.facing = near ? (dx < 0.0f ? -1.0f : 1.0f) : static_cast<float>(n.facing);
         a.pose = anime::AvatarPose::Idle;
-        if (near && a.expression == anime::Expression::Neutral) {
-            a.expression = anime::Expression::Happy;
-            a.nextExpression = anime::Expression::Happy;
-        }
         // Brann hammers at the anvil now and then.
         if (n.npc == game::NpcId::Brann && !near) {
             const float cycle = std::fmod(time, 2.4f);
