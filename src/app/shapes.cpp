@@ -55,17 +55,24 @@ void addIcon(gamelib::draw::DrawList& list, const Shapes& shapes, const Ui kind,
               .params = {static_cast<float>(kind), id, style, w}});
 }
 
+gamelib::draw::Sprite decoSprite(const Shapes& shapes, const int kind, const gamelib::core::Vec2 ground, const float width,
+                                  const float height, const gamelib::core::Color a, const gamelib::core::Color b, const float lit,
+                                  const float variant, const float seed)
+{
+    // The deco shader's ground line is 6/128 above the quad's bottom.
+    const float bottom = ground.y + height * (6.0f / 128.0f);
+    return {.rect = {ground.x - width * 0.5f, bottom - height, width, height},
+            .color = a,
+            .color2 = b,
+            .shape = shapes.deco,
+            .params = {static_cast<float>(kind), lit, variant, seed}};
+}
+
 void addDeco(gamelib::draw::DrawList& list, const Shapes& shapes, const int kind, const gamelib::core::Vec2 ground,
              const float width, const float height, const gamelib::core::Color a, const gamelib::core::Color b, const float lit,
              const float variant, const float seed)
 {
-    // The deco shader's ground line is 6/128 above the quad's bottom.
-    const float bottom = ground.y + height * (6.0f / 128.0f);
-    list.add({.rect = {ground.x - width * 0.5f, bottom - height, width, height},
-              .color = a,
-              .color2 = b,
-              .shape = shapes.deco,
-              .params = {static_cast<float>(kind), lit, variant, seed}});
+    list.add(decoSprite(shapes, kind, ground, width, height, a, b, lit, variant, seed));
 }
 
 } // namespace wayfarer::app

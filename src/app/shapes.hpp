@@ -50,6 +50,9 @@ void addIcon(gamelib::draw::DrawList& list, const Shapes& shapes, Ui kind, gamel
              float style, gamelib::core::Color a, gamelib::core::Color b, float w = 0.0f);
 
 // A decoration standing on `ground` (deco.frag), `height` tall, `width` wide.
+// The same decoration as a sprite (a parallax row collects them).
+[[nodiscard]] gamelib::draw::Sprite decoSprite(const Shapes& shapes, int kind, gamelib::core::Vec2 ground, float width, float height,
+                                                gamelib::core::Color a, gamelib::core::Color b, float lit, float variant, float seed);
 void addDeco(gamelib::draw::DrawList& list, const Shapes& shapes, int kind, gamelib::core::Vec2 ground, float width, float height,
              gamelib::core::Color a, gamelib::core::Color b, float lit, float variant, float seed);
 

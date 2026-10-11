@@ -460,17 +460,10 @@ void WorldView::drawDecos(gamelib::draw::DrawList& list, const Shapes& shapes, c
     const game::MapDef& def = session.map();
     const float night = session.nightAmount();
     const float lit = def.dungeon || def.region == game::Region::Mines ? 1.0f : gamelib::core::smoothstep(0.2f, 0.6f, night);
-    const Rect vis = visible().expanded(300.0f);
-    const RegionLook look = regionLook(def.region, def.dungeon, night);
-    const auto drawOne = [&](const game::Deco& d, const int index, const Vec2 at, const bool skyline) {
+    const auto spriteOf = [&](const game::Deco& d, const int index) {
         const DecoSize size = decoSize(d.kind);
         const float w = size.width * d.scale;
         const float h = d.kind == game::DecoKind::Bunting ? size.height : size.height * d.scale;
-        if (at.x + w < vis.left() || at.x - w > vis.right()) {
-            return;
-        }
-        // The back row sits in the haze of the far hills.
-        const auto haze = [&](const Color c) { return skyline ? gamelib::core::lerp(c, look.far, 0.5f) : c; };
         if (d.kind == game::DecoKind::House) {
             const int style = d.variant & 15;
             Color wall;
@@ -478,34 +471,41 @@ void WorldView::drawDecos(gamelib::draw::DrawList& list, const Shapes& shapes, c
             houseColors(style, (d.variant >> 4) & 15, wall, roof);
             const int signIcon = (d.variant >> 8) & 15;
             const int icon = signIcon > 0 ? signIcon - 1 : style == 1 ? 1 : style == 7 ? 15 : 0; // the shop sells potions
-            list.setLayer(skyline ? kLayerSkyline : kLayerHouses);
-            list.add({.rect = {at.x - w * 0.5f, at.y - h * (122.0f / 128.0f), w, h},
-                      .color = haze(wall),
-                      .color2 = haze(roof),
-                      .shape = shapes.building,
-                      .params = {static_cast<float>(style), lit, 0.35f, 0.0f},
-                      .bits = static_cast<std::uint64_t>(icon) | static_cast<std::uint64_t>(index * 37 % 255) << 8});
-            return;
+            return gamelib::draw::Sprite{.rect = {d.at.x - w * 0.5f, d.at.y - h * (122.0f / 128.0f), w, h},
+                                         .color = wall,
+                                         .color2 = roof,
+                                         .shape = shapes.building,
+                                         .params = {static_cast<float>(style), lit, 0.35f, 0.0f},
+                                         .bits = static_cast<std::uint64_t>(icon) | static_cast<std::uint64_t>(index * 37 % 255) << 8};
         }
         Color a;
         Color b;
         decoColors(d.kind, def.region, d.variant, a, b);
-        list.setLayer(skyline ? kLayerSkyline : d.front ? kLayerFront : kLayerDecoBack);
-        addDeco(list, shapes, static_cast<int>(d.kind), at, w, h, haze(a), haze(b), lit, static_cast<float>(d.variant),
-                hashf(static_cast<float>(index)) * 10.0f);
+        return decoSprite(shapes, static_cast<int>(d.kind), d.at, w, h, a, b, lit, static_cast<float>(d.variant),
+                          hashf(static_cast<float>(index)) * 10.0f);
     };
-    // The back row moves at 65% of the camera: its home x lines up with the
-    // street when the camera is centered on it.
-    const float camX = visible().center().x;
-    int index = 0;
-    for (const game::Deco& d : def.skyline) {
-        ++index;
-        drawOne(d, index + 500, {camX + (d.at.x - camX) * 0.65f, d.at.y}, true);
+    // The back row: at 65% of the camera's motion, in the haze of the far hills.
+    if (!def.skyline.empty()) {
+        std::vector<gamelib::draw::Sprite> row;
+        row.reserve(def.skyline.size());
+        int index = 500;
+        for (const game::Deco& d : def.skyline) {
+            row.push_back(spriteOf(d, ++index));
+        }
+        list.setLayer(kLayerSkyline);
+        gamelib::draw::drawParallaxSprites(list, row, m_camera.view(), m_canvas,
+                                           {.haze = regionLook(def.region, def.dungeon, night).far, .hazeAmount = 0.5f});
     }
-    index = 0;
+    const Rect vis = visible().expanded(300.0f);
+    int index = 0;
     for (const game::Deco& d : def.decos) {
         ++index;
-        drawOne(d, index, d.at, false);
+        const gamelib::draw::Sprite s = spriteOf(d, index);
+        if (s.rect.right() < vis.left() || s.rect.left() > vis.right()) {
+            continue;
+        }
+        list.setLayer(d.kind == game::DecoKind::House ? kLayerHouses : d.front ? kLayerFront : kLayerDecoBack);
+        list.add(s);
     }
 }
 
