@@ -480,6 +480,8 @@ void WayfarerGame::applyDevScene(gamelib::app::App& app)
             s.debugTime(18);
         } else if (token == "gear") {
             s.debugGear();
+        } else if (token == "learn") {
+            s.debugLearnAll();
         } else if (token == "stats") {
             openWindow(app, WindowId::Stats);
         } else if (token == "skills") {

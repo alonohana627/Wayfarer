@@ -212,6 +212,7 @@ public:
     void debugTime(int hour);
     void debugGear();
     void debugMove(float x);
+    void debugLearnAll();
 
 private:
     void enterMap(MapId map, std::optional<gamelib::core::Vec2> feet, int facing);

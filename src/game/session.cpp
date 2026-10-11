@@ -1631,3 +1631,18 @@ void Session::debugMove(const float x)
 }
 
 } // namespace wayfarer::game
+
+namespace wayfarer::game {
+
+void Session::debugLearnAll()
+{
+    for (int round = 0; round < 12; ++round) {
+        for (const SkillId s : {SkillId::Roll, SkillId::Sweep, SkillId::Starbolt, SkillId::Tailwind, SkillId::Bloom, SkillId::HyperJump,
+                                SkillId::Combo}) {
+            (void)learnSkill(s);
+        }
+    }
+    (void)m_events.take();
+}
+
+} // namespace wayfarer::game

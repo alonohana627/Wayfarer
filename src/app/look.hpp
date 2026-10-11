@@ -68,6 +68,11 @@ struct MonsterColors {
     Color accent;
 };
 [[nodiscard]] MonsterColors monsterColors(game::SpeciesId species, bool elite);
+
+// The decoration an elite of this species wears, by archetype (a cap gets
+// flowers, a lantern or horns; a mochi a bow, a flame, a lily or an ice pin;
+// the shader picks the shape from the archetype and this variant).
+[[nodiscard]] int eliteTrait(game::SpeciesId species);
 [[nodiscard]] int monsterShaderKind(game::Archetype archetype);
 
 // Items.

@@ -55,7 +55,7 @@ void Hud::mapTitle(const game::Session& s)
     m_title.clear();
     const game::MapDef& def = s.map();
     m_title.add({.name = std::string{def.name}, .region = def.region == game::Region::Town ? "home" : std::string{game::regionName(def.region)}},
-                3.6f);
+                3.2f);
 }
 
 void Hud::react(const game::Event& e, const game::Session& s)
@@ -440,8 +440,14 @@ void Hud::draw(gamelib::draw::DrawList& list, const Shapes& shapes, const game::
     for (const auto& item : m_title) {
         const float t = item.progress();
         const float in = gamelib::core::easeOutBack(std::min(t * 5.0f, 1.0f));
-        const float alpha = 1.0f - gamelib::core::smoothstep(0.75f, 1.0f, t);
-        const float y = 180.0f - (1.0f - in) * 30.0f;
+        // A short, clean fade that lifts the banner away; nothing is drawn once
+        // it is nearly gone, so no faint ghost lingers over the sky.
+        const float out = gamelib::core::smoothstep(0.8f, 0.96f, t);
+        const float alpha = (1.0f - out) * (1.0f - out);
+        if (alpha < 0.03f) {
+            continue;
+        }
+        const float y = 180.0f - (1.0f - in) * 30.0f - out * 24.0f;
         ui::text(list, item.value.region, W * 0.5f, y - 44.0f,
                  {.size = 30.0f, .color = srgb(0xFFF2D8, alpha), .weight = 1.5f, .align = Align::Center, .outline = true});
         ui::text(list, item.value.name, W * 0.5f, y,

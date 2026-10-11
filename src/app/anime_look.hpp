@@ -104,6 +104,7 @@ struct Monster {
     gamelib::core::Color body = gamelib::core::srgb(0xF6E8D2);
     gamelib::core::Color accent = gamelib::core::srgb(0x5CC8B0);
     bool elite = false;
+    std::uint8_t trait = 0; // which elite decoration the species wears (0-15)
     std::uint8_t seed = 0;
 };
 
@@ -116,7 +117,7 @@ struct Monster {
             .color2 = m.accent,
             .shape = shape,
             .params = {static_cast<float>(m.kind), static_cast<float>(m.state), m.progress, m.facing < 0.0f ? -1.0f : 1.0f},
-            .bits = (m.elite ? 1u : 0u) | static_cast<std::uint64_t>(m.seed) << 8};
+            .bits = (m.elite ? 1u : 0u) | static_cast<std::uint64_t>(m.seed) << 8 | static_cast<std::uint64_t>(m.trait & 15u) << 16};
 }
 
 // The boss (the Elder Bellcap): a giant fungus with arms, a crown and phase colors.

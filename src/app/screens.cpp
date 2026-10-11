@@ -362,6 +362,7 @@ void WayfarerGame::drawSheet(gamelib::draw::DrawList& list, const float time) co
                 m.body = colors.body;
                 m.accent = colors.accent;
                 m.elite = e == 1;
+                m.trait = static_cast<std::uint8_t>(eliteTrait(id));
                 m.state = anime::MonsterState::Idle;
                 m.facing = -1.0f;
                 list.add(anime::monsterSprite(m, m_shapes.monster));

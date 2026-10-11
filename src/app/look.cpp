@@ -296,11 +296,30 @@ MonsterColors monsterColors(const game::SpeciesId s, const bool elite)
     case S::Count: break;
     }
     if (elite) {
-        // Elites: the same creature in a richer, deeper coat.
-        c.accent = lerp(c.accent, srgb(0xB05AE0), 0.45f);
-        c.body = lerp(c.body, srgb(0xF4C24E), 0.25f);
+        // Elites: the same creature in a slightly richer coat; the decoration
+        // (eliteTrait) is what marks them.
+        c.accent = lerp(c.accent, srgb(0xB05AE0), 0.2f);
+        c.body = lerp(c.body, srgb(0xF4C24E), 0.12f);
     }
     return c;
+}
+
+int eliteTrait(const game::SpeciesId s)
+{
+    using S = game::SpeciesId;
+    switch (s) {
+    case S::LanternCap: return 1;  // a lantern on the brim
+    case S::Murkcap: return 2;     // curled horns
+    case S::EmberMochi: return 1;  // a flame crest
+    case S::BogMochi: return 2;    // a lily pad hat
+    case S::FrostMochi: return 3;  // an ice hairpin
+    case S::SandTurban: return 1;  // gold spikes
+    case S::SnowPudgy: return 1;   // earmuffs with the scarf
+    case S::OldStump: return 1;    // mushrooms with the beard
+    case S::ReedFlitter: return 1; // reed-green feathers
+    case S::FrostWisp: return 1;   // an ice halo
+    default: return 0;             // the archetype's own trait
+    }
 }
 
 int monsterShaderKind(const game::Archetype a)

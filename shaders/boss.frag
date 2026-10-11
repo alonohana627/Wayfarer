@@ -11,7 +11,8 @@
 //   1 Rumblerock       - a boulder golem with glowing ore and stone fists
 //   2 Queen Murkshell  - a huge turbanshell with a pearl, a tiara and eye
 //                        stalks; spins inside her shell when guarded
-//   3 Lantern Warden   - a wisp in a knight's helm holding a lantern
+//   3 Lantern Warden   - a hooded lantern keeper in a breastplate floating
+//                        on a wisp tail, holding a lantern staff
 //   4 The Hush         - a hooded cloak full of night sky with a pale face
 //                        and a silver crown
 // Angry faces are angry: lids down to the inside, brows pinched, a frown.
@@ -160,8 +161,10 @@ void rumblerock(vec2 q, vec2 feet, AnimeMotion m, int phase, int state, float pr
     // The boulder body with cracks and moss.
     float body = sdRoundBox(q - vec2(0.0, 12.0), vec2(36.0, 32.0), 26.0) + valueNoise(q * 0.07) * 4.0;
     animePart(C, body, rock);
-    vec3 v = voronoi(q * 0.06 + 2.0);
-    animeLine(C, max(abs(v.y - v.x) * 14.0 - 0.6, body + 4.0), rock.ink);
+    // A smooth, paler face plate keeps the face clear of the cracks.
+    float plate = sdRoundBox(q - vec2(15.0, 15.0), vec2(20.0, 17.0), 13.0);
+    vec3 v = voronoi(q * 0.05 + 2.0);
+    animeLine(C, max(max(abs(v.y - v.x) * 14.0 - 0.5, body + 4.0), -(plate - 3.0)), rock.ink);
     float moss = max(body + 0.5, (q.y + 16.0) - sin(q.x * 0.25) * 3.0);
     animePartNoLine(C, moss, animeMaterial(animeHex(0x7CC062u)));
     // Ore crystals on the back.
@@ -176,12 +179,16 @@ void rumblerock(vec2 q, vec2 feet, AnimeMotion m, int phase, int state, float pr
     animePart(C, crystal, animeGlow(oreColor));
     // The front leg.
     animePart(C, sdRoundBox(q - feet - vec2(16.0 - walk * 4.0, -7.0), vec2(12.0, 8.0), 5.0), rock);
-    // The face.
+    // The face on its plate.
+    animePart(C, plate, animeMatte(mix(rockColor, animeHex(0xF4EEE6u), 0.45)));
+    animeGloss(C, q, plate, vec2(6.0, 4.0), vec2(7.0, 4.0), 0.3);
     AnimeFace f = bossFace(m.mood, phase, state);
-    bossEyes(q, vec2(6.0, 10.0), vec2(24.0, 10.0), 14.0, f, animeHex(0x3E6A8Au), glow, phase, 0.6);
+    bossEyes(q, vec2(6.0, 12.0), vec2(24.0, 12.0), 14.0, f, animeHex(0x3E6A8Au), glow, phase, 0.6);
     bossMouth(q, vec2(16.0, 26.0), 10.0, f, rock.ink);
-    // The front fist, raised on the wind-up.
-    vec2 shoulder = vec2(26.0, 14.0);
+    animeBlush(C, q, vec2(0.0, 22.0), vec2(4.5, 2.2), phase >= 1 ? 0.0 : 0.5, rock.ink);
+    animeBlush(C, q, vec2(31.0, 22.0), vec2(4.5, 2.2), phase >= 1 ? 0.0 : 0.5, rock.ink);
+    // The front fist at its side (clear of the face), raised on the wind-up.
+    vec2 shoulder = vec2(38.0, 22.0);
     vec2 fist = shoulder + mix(vec2(16.0, 18.0), vec2(6.0, -36.0), raise) + vec2(0.0, sin(T * 1.3 + 1.0) * 1.5);
     animePart(C, sdSegment(q, shoulder, fist, 8.0), rock);
     float fistD = sdRoundBox(q - fist, vec2(13.0, 12.0), 8.0);
@@ -242,52 +249,87 @@ void murkshell(vec2 q, vec2 feet, AnimeMotion m, int phase, int state, float pro
 
 void warden(vec2 q, AnimeMotion m, int phase, int state, float progress, vec3 sheetColor, vec3 flame, vec3 glow)
 {
+    // A lantern keeper: a big round wisp-pale face in a pointed blue hood,
+    // a robed torso with a steel breastplate and pauldrons, two arms (the
+    // front one holds the lantern staff) and a wisp tail it floats on.
     AnimeMaterial sheet = animeMaterial(sheetColor);
+    AnimeMaterial skin = animeSkin(mix(sheetColor, animeHex(0xFFE2CCu), 0.35));
+    vec3 robeColor = phase >= 2 ? animeHex(0x3C3F8Cu) : animeHex(0x4E5FA8u);
+    AnimeMaterial robe = animeCloth(robeColor);
+    AnimeMaterial robeBack = animeTinted(robe, vec3(0.8, 0.8, 0.9));
     AnimeMaterial steel = animeMetal(animeHex(0xC8CCDAu));
     AnimeMaterial gold = animeMetal(animeHex(0xF2C14Eu));
     float wave = sin(T * 2.5);
     float raise = state == kAnimeWindup ? smoothstep(0.0, 0.8, progress) : 0.0;
     vec3 fire = phase >= 1 ? mix(flame, glow, 0.5) : flame;
-    // A cape behind.
-    float cape = sdLockBelly(q, vec2(-6.0, -16.0), vec2(-24.0, 10.0), vec2(-36.0 + wave * 4.0, 44.0), 16.0, 22.0);
-    animePart(C, cape, animeCloth(animeHex(0x4E5FA8u)));
-    // The sheet body.
-    float body = sdLockBelly(q, vec2(0.0, -10.0), vec2(4.0, 20.0), vec2(-18.0 + wave * 5.0, 46.0), 28.0, 6.0);
-    body = animeSmoothUnion(body, sdCircle(q - vec2(2.0, -6.0), 26.0), 8.0);
-    C.color = over(vec4(mix(sheetColor, vec3(1.0), 0.5), glowFalloff(body, 10.0) * 0.3), C.color);
-    animePart(C, body, sheet);
-    animeLine(C, max(sdBezier(q, vec2(-12.0, 28.0), vec2(-16.0, 38.0), vec2(-22.0 + wave * 4.0, 44.0)), body + 1.0), sheet.ink);
-    // The helm on top of the head, its visor slit glowing.
-    float helm = max(sdCircle(q - vec2(4.0, -20.0), 22.0), q.y + 4.0);
-    helm = min(helm, sdRoundBox(q - vec2(4.0, -6.0), vec2(22.0, 3.0), 2.0));
-    animePartShine(C, helm, steel, animeCover(C, abs(sdCircle(q - vec2(-2.0, -27.0), 12.0)) - 1.0) * 0.6, vec3(1.0));
-    animeLine(C, max(abs(q.x - 10.0 - (q.y + 20.0) * 0.1), helm + 2.0), steel.ink);
-    float plume = sdLockBelly(q, vec2(4.0, -40.0), vec2(-14.0, -54.0), vec2(-34.0, -40.0), 5.0, 2.0);
-    animePart(C, plume, animeCloth(animeHex(0xEC5662u)));
-    float slit = sdRoundBox(q - vec2(11.0, -15.0), vec2(13.0, 4.0), 3.0);
-    animeFlat(C, slit, animeHex(0x1E1A30u));
+
+    // The cape and the hood's tail behind everything.
+    float cape = sdLockBelly(q, vec2(-6.0, -4.0), vec2(-28.0, 14.0), vec2(-42.0 + wave * 5.0, 38.0), 14.0, 18.0);
+    animePart(C, cape, robeBack);
+    float hoodTail = sdLock(q, vec2(-12.0, -44.0), vec2(-30.0, -52.0), vec2(-42.0 + wave * 3.0, -40.0), 10.0, 2.0);
+    animePart(C, hoodTail, robeBack);
+
+    // The wisp tail it floats on.
+    float tail = sdLockBelly(q, vec2(2.0, 20.0), vec2(-2.0, 38.0), vec2(-24.0 + wave * 6.0, 56.0), 17.0, 3.0);
+    C.color = over(vec4(mix(sheetColor, vec3(1.0), 0.5), glowFalloff(tail, 12.0) * 0.35), C.color);
+    animePart(C, tail, sheet);
+    animeLine(C, max(sdBezier(q, vec2(-8.0, 36.0), vec2(-12.0, 46.0), vec2(-20.0 + wave * 5.0, 52.0)), tail + 1.0), sheet.ink);
+
+    // The back arm, a gauntlet resting at its side.
+    vec2 shoulderB = vec2(-18.0, 2.0);
+    vec2 handB = shoulderB + vec2(-9.0 + wave, 20.0 - raise * 8.0);
+    animePart(C, sdLockBelly(q, shoulderB, mix(shoulderB, handB, 0.5) + vec2(-3.0, 0.0), handB, 7.0, 6.0), robeBack);
+    animePart(C, sdCircle(q - handB, 5.5), animeTinted(steel, vec3(0.8, 0.8, 0.9)));
+
+    // The robed torso flaring into a tabard, with a gold hem.
+    float torso = sdTrapezoid(q - vec2(2.0, 10.0), 24.0, 17.0, 16.0) - 4.0;
+    animePart(C, torso, robe);
+    animePartNoLine(C, max(torso + 0.5, -(q.y - 22.0)), animeMetal(animeHex(0xF2C14Eu)));
+    animeLine(C, max(abs(q.y - 22.0), torso + 0.8), robe.ink);
+    animeLine(C, max(abs(q.x - 6.0 - (q.y - 10.0) * 0.15), max(torso + 1.0, -(q.y - 12.0))), robe.ink);
+    // The breastplate.
+    float plate = sdRoundBox(q - vec2(4.0, 2.0), vec2(16.0, 10.0), 7.0);
+    animePartShine(C, plate, steel, animeCover(C, abs(sdCircle(q - vec2(-2.0, -2.0), 9.0)) - 1.0) * 0.5, vec3(1.0));
+    animePart(C, sdCircle(q - vec2(4.0, 2.0), 3.5), gold);
+    // A pauldron on the back shoulder.
+    animePart(C, sdEllipse(q - vec2(-16.0, -4.0), vec2(9.0, 7.0)), animeTinted(steel, vec3(0.85, 0.85, 0.92)));
+
+    // The hood, the face inside it and the hood's shadow on the forehead.
+    vec2 head = vec2(6.0, -30.0);
+    float hood = sdCircle(q - head - vec2(-2.0, -2.0), 27.0);
+    hood = animeSmoothUnion(hood, sdLock(q, head + vec2(-14.0, -22.0), head + vec2(-10.0, -34.0), head + vec2(-2.0, -40.0), 9.0, 2.0), 6.0);
+    animePart(C, hood, robe);
+    float faceD = sdEllipse(q - head - vec2(3.0, 2.0), vec2(19.0, 18.0));
+    animeFlat(C, max(sdEllipse(q - head - vec2(3.0, 1.0), vec2(22.0, 21.0)), hood), animeShadowTone(robeColor, 0.55));
+    animePart(C, faceD, skin);
+    animeCastShadow(C, faceD, max(sdCircle(q - head - vec2(-2.0, -9.0), 27.0), -sdEllipse(q - head - vec2(3.0, 4.0), vec2(22.0, 16.0))), skin);
+    // A gold band and gem on the hood's brow.
+    float band = max(abs(sdEllipse(q - head - vec2(3.0, 1.0), vec2(22.0, 21.0))) - 1.8, -(q.y - head.y + 8.0));
+    animePart(C, band, gold);
+    animePart(C, sdCircle(q - head - vec2(4.0, -20.0), 3.2), animeGlow(fire));
+
     AnimeFace f = bossFace(m.mood, phase, state);
-    vec3 eyeGlow = phase >= 1 ? glow : fire;
-    for (int i = 0; i < 2; ++i) {
-        vec2 e = vec2(5.0 + float(i) * 12.0, -15.0);
-        float eye = max(sdEllipse(q - e, vec2(4.0, 3.5 * (f.eyeShape == kAnimeEyeOpen ? 1.0 : 0.3))), slit);
-        if (phase >= 1) {
-            eye = max(eye, -(q.y - e.y + 1.5 + (q.x - e.x) * (i == 0 ? -0.5 : 0.5)));
-        }
-        C.color = over(vec4(eyeGlow * 1.5, glowFalloff(eye, 4.0) * 0.8), C.color);
-        animeFlat(C, eye, eyeGlow * 1.6);
-    }
-    animePart(C, sdRoundBox(q - vec2(4.0, -2.0), vec2(22.0, 2.5), 2.0), gold);
-    // The lantern on its staff, held out in front; raised to cast.
-    vec2 hand = vec2(30.0, 8.0) + vec2(0.0, -raise * 24.0);
-    animePart(C, sdSegment(q, hand + vec2(0.0, 30.0), hand + vec2(0.0, -26.0), 2.4), animeMaterial(animeHex(0x8A5A3Cu)));
-    vec2 lantern = hand + vec2(0.0, -30.0);
-    float frame = sdRoundBox(q - lantern - vec2(0.0, 8.0), vec2(11.0, 13.0), 4.0);
+    bossEyes(q, head + vec2(-4.0, 4.0), head + vec2(12.0, 4.0), 11.0, f, animeHex(0xC07A28u), glow, phase, 0.45);
+    bossMouth(q, head + vec2(5.0, 14.0), 5.0, f, animeInkOf(sheetColor) * 1.5);
+    animeBlush(C, q, head + vec2(-10.0, 11.0), vec2(4.0, 2.0), phase >= 1 ? 0.0 : 0.6, animeInkOf(sheetColor));
+    animeBlush(C, q, head + vec2(18.0, 11.0), vec2(4.0, 2.0), phase >= 1 ? 0.0 : 0.6, animeInkOf(sheetColor));
+
+    // The front arm holding the lantern staff out in front; raised to cast.
+    vec2 shoulderF = vec2(22.0, 2.0);
+    vec2 hand = vec2(40.0, 14.0) + vec2(0.0, -raise * 24.0);
+    animePart(C, sdLockBelly(q, shoulderF, mix(shoulderF, hand, 0.5) + vec2(0.0, 3.0), hand, 7.0, 6.0), robe);
+    animePart(C, sdEllipse(q - shoulderF - vec2(0.0, -4.0), vec2(9.0, 7.0)), steel);
+    vec2 top = hand + vec2(0.0, -40.0);
+    animePart(C, sdSegment(q, hand + vec2(0.0, 30.0), top, 2.4), animeMaterial(animeHex(0x8A5A3Cu)));
+    animePart(C, sdArcCurve(q - top - vec2(7.0, 0.0), 7.0, -1.5708, 1.5708) - 1.6, gold);
+    vec2 lantern = top + vec2(14.0, 8.0);
+    animeStroke(C, sdSegment(q, top + vec2(14.0, 0.0), lantern, 0.0), 1.2, gold.ink);
+    float frame = sdRoundBox(q - lantern - vec2(0.0, 12.0), vec2(10.0, 12.0), 4.0);
     float flick = 0.85 + 0.15 * sin(T * 11.0) * sin(T * 7.0);
     C.color = over(vec4(fire * 1.6, glowFalloff(frame, 26.0) * 0.55 * flick), C.color);
     animePart(C, frame, gold);
-    animeFlat(C, sdRoundBox(q - lantern - vec2(0.0, 8.0), vec2(7.5, 10.0), 3.0), fire * 1.8 * flick);
-    animePart(C, sdCircle(q - hand, 6.5), sheet);
+    animeFlat(C, sdRoundBox(q - lantern - vec2(0.0, 12.0), vec2(6.5, 9.0), 3.0), fire * 1.8 * flick);
+    animePart(C, sdCircle(q - hand, 6.0), steel);
 }
 
 void hush(vec2 q, AnimeMotion m, int phase, int state, float progress, vec3 face, vec3 cloakColor, vec3 glow)

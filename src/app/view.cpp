@@ -540,6 +540,7 @@ void WorldView::drawMonsters(gamelib::draw::DrawList& list, const Shapes& shapes
         look.body = colors.body;
         look.accent = colors.accent;
         look.elite = m.elite;
+        look.trait = static_cast<std::uint8_t>(eliteTrait(m.species));
         look.seed = m.seed;
         using MS = anime::MonsterState;
         float progress = m.progress();
