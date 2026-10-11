@@ -82,13 +82,16 @@ void main()
             c = arc(q, t, -2.9, 1.4, 50.0, 28.0, core, edge);
         }
     } else if (kind == 1) {
-        // The crescent sweep: two full rings of light around the hero.
-        float spin = t * 2.0;
-        vec4 a1 = arc(p, fract(spin), -PI, PI, 52.0, 26.0, core, edge);
-        vec4 a2 = arc(vec2(-p.x, p.y), fract(spin + 0.5), -PI, PI, 40.0, 18.0, core, edge);
+        // The crescent sweep: a wide crescent from high behind the hero over
+        // its head to low in front, ending at foot level (never into the
+        // ground), a second thinner one just after, and a burst ring above
+        // the floor. w is the facing.
+        vec2 q = vec2(p.x * (w < 0.0 ? -1.0 : 1.0), p.y);
+        vec4 a1 = arc(q, t, -2.9, 0.12, 52.0, 30.0, core, edge);
+        vec4 a2 = arc(q, clamp(t * 1.15 - 0.12, 0.0, 1.0), -2.6, 0.1, 38.0, 18.0, core, edge);
         c = over(a2, a1);
-        float ring = 1.0 - smoothstep(1.5, 3.0, abs(length(p) - 58.0 * smoothstep(0.0, 1.0, t)));
-        c = add(c, edge, ring * (1.0 - t) * 0.6);
+        float ring = 1.0 - smoothstep(1.5, 3.0, abs(length(q) - 58.0 * smoothstep(0.0, 1.0, t)));
+        c = add(c, edge, ring * (1.0 - t) * 0.6 * smoothstep(18.0, 8.0, q.y));
     } else if (kind == 2) {
         // The starbolt: a spinning five-point star in a glow with a white heart.
         vec2 q = rotate2d(p, time * 6.0 + w);

@@ -245,7 +245,7 @@ void Effects::react(const game::Event& e, const game::Session& s)
                  0.2f);
         }
         if (skill == game::SkillId::Sweep) {
-            addArc({.offset = {0.0f, -56.0f}, .facing = facing, .core = srgb(0xFFFFFF).scaled(1.5f), .edge = srgb(0x7FD8FF).scaled(1.2f),
+            addArc({.offset = {0.0f, -80.0f}, .facing = facing, .core = srgb(0xFFFFFF).scaled(1.5f), .edge = srgb(0x7FD8FF).scaled(1.2f),
                     .size = 560.0f, .kind = Fx::Sweep},
                    0.62f);
             m_shake.trigger(0.55f * m_shakeScale);

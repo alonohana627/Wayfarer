@@ -132,7 +132,7 @@ void Hud::drawBars(gamelib::draw::DrawList& list, const Shapes& shapes, const ga
              {.size = 19.0f, .color = srgb(0xFFFFFF), .weight = 1.5f, .align = Align::Center, .outline = true});
     // The status panel.
     const Rect panel{18.0f, H - 176.0f, 520.0f, 132.0f};
-    addUi(list, shapes, Ui::Window, panel.expanded(8.0f), srgb(0x3E3354, 0.86f), srgb(0x8CCAD6), 0.0f, 1.0f);
+    addUi(list, shapes, Ui::Window, panel.expanded(8.0f), srgb(0x3E3354, 0.96f), srgb(0x8CCAD6), 0.0f, 1.0f);
     // The level badge.
     const Vec2 badge{panel.x + 62.0f, panel.center().y};
     addUi(list, shapes, Ui::Frame, {badge.x - 50.0f, badge.y - 50.0f, 100.0f, 100.0f}, srgb(0xF6C845), srgb(0xFFF2C0));
@@ -178,7 +178,7 @@ void Hud::drawHotkeys(gamelib::draw::DrawList& list, const Shapes& shapes, const
     float x = W - 24.0f - static_cast<float>(count) * (size + gap);
     const float y = H - 150.0f;
     addUi(list, shapes, Ui::Window, {x - 20.0f, y - 18.0f, static_cast<float>(count) * (size + gap) + 30.0f, size + 52.0f},
-          srgb(0x3E3354, 0.86f), srgb(0x8CCAD6), 0.0f, 1.0f);
+          srgb(0x3E3354, 0.96f), srgb(0x8CCAD6), 0.0f, 1.0f);
     for (int i = 0; i < count; ++i) {
         const Rect r{x, y, size, size};
         addUi(list, shapes, Ui::Slot, r, srgb(0x5A4E70), srgb(0xFFFFFF), 0.0f, 0.0f);
