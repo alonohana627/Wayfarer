@@ -35,6 +35,8 @@ float popIn(const float age)
     return gamelib::core::easeOutBack(std::min(age / 0.2f, 1.0f));
 }
 
+constexpr float kCloseSeconds = 0.12f;
+
 Rect grid(const Vec2 origin, const int index)
 {
     const int col = index % kGridColumns;
@@ -102,9 +104,20 @@ std::string_view coreText(const game::Core c)
 
 } // namespace
 
+float Windows::popAmount() const
+{
+    if (m_open == WindowId::None) {
+        // Dropping away: the windows slide down by (1 - pop) * 30, so this sinks them about 50 units.
+        const float t = std::min(m_closeAge / kCloseSeconds, 1.0f);
+        return 1.0f - 1.7f * t * t;
+    }
+    return popIn(m_age);
+}
+
 void Windows::open(const WindowId id)
 {
     m_open = id;
+    m_closing = WindowId::None;
     m_cursor = 0;
     m_statWindow.select(0);
     m_slotGrid.setSlots(inventoryRects());
@@ -304,15 +317,17 @@ WindowFeedback Windows::handle(const MenuInput input, game::Session& s)
 void Windows::draw(gamelib::draw::DrawList& list, const Shapes& shapes, const game::Session& s,
                    const gamelib::platform::ActionMap& actions, const gamelib::core::Size canvas, const float time) const
 {
-    if (m_open == WindowId::None) {
+    const bool closing = m_open == WindowId::None && m_closing != WindowId::None && m_closeAge < kCloseSeconds;
+    const WindowId shown = closing ? m_closing : m_open;
+    if (shown == WindowId::None) {
         return;
     }
     list.setLayer(kLayer - 1);
     // A soft veil over the paused world.
-    list.box({0.0f, 0.0f, static_cast<float>(canvas.width), static_cast<float>(canvas.height)},
-             srgb(0x1A1428, 0.35f * std::min(m_age / 0.15f, 1.0f)));
+    const float veil = closing ? 1.0f - m_closeAge / kCloseSeconds : std::min(m_age / 0.15f, 1.0f);
+    list.box({0.0f, 0.0f, static_cast<float>(canvas.width), static_cast<float>(canvas.height)}, srgb(0x1A1428, 0.35f * veil));
     list.setLayer(kLayer);
-    switch (m_open) {
+    switch (shown) {
     case WindowId::Stats: drawStats(list, shapes, s, time); break;
     case WindowId::Skills: drawSkills(list, shapes, s, actions, time); break;
     case WindowId::Inventory: drawInventory(list, shapes, s, time); break;
@@ -327,7 +342,7 @@ void Windows::drawStats(gamelib::draw::DrawList& list, const Shapes& shapes, con
 {
     using gamelib::draw::Font;
     const game::Character& c = s.character();
-    const float pop = popIn(m_age);
+    const float pop = popAmount();
     const Rect win{430.0f, 120.0f + (1.0f - pop) * 30.0f, 1060.0f, 820.0f};
     const bool can = c.points.available() > 0;
     const auto bounceOf = [this](const int row) {
@@ -435,7 +450,7 @@ void Windows::drawSkills(gamelib::draw::DrawList& list, const Shapes& shapes, co
                          const gamelib::platform::ActionMap& actions, const float time) const
 {
     const game::Character& c = s.character();
-    const float pop = popIn(m_age);
+    const float pop = popAmount();
     const Rect win{470.0f, 110.0f + (1.0f - pop) * 30.0f, 980.0f, 860.0f};
     const Rect in = ui::window(list, shapes, win, "skills");
     ui::text(list, "skill points", in.x + 10.0f, in.y, {.size = 28.0f, .color = ui_color::kInk, .weight = 1.6f});
@@ -507,7 +522,7 @@ void Windows::drawSkills(gamelib::draw::DrawList& list, const Shapes& shapes, co
 void Windows::drawInventory(gamelib::draw::DrawList& list, const Shapes& shapes, const game::Session& s, const float time) const
 {
     const game::Character& c = s.character();
-    const float pop = popIn(m_age);
+    const float pop = popAmount();
     const Rect win{kInvWindow.x, kInvWindow.y + (1.0f - pop) * 30.0f, kInvWindow.width, kInvWindow.height};
     (void)ui::window(list, shapes, win, "bag & equipment");
     const float lift = (1.0f - pop) * 30.0f;
@@ -581,7 +596,7 @@ void Windows::drawInventory(gamelib::draw::DrawList& list, const Shapes& shapes,
 void Windows::drawQuests(gamelib::draw::DrawList& list, const Shapes& shapes, const game::Session& s, const float time) const
 {
     (void)time;
-    const float pop = popIn(m_age);
+    const float pop = popAmount();
     const Rect win{470.0f, 140.0f + (1.0f - pop) * 30.0f, 980.0f, 780.0f};
     const Rect in = ui::window(list, shapes, win, "quest log");
     const std::vector<int> log = s.quests().log();
@@ -633,7 +648,7 @@ void Windows::drawQuests(gamelib::draw::DrawList& list, const Shapes& shapes, co
 void Windows::drawShop(gamelib::draw::DrawList& list, const Shapes& shapes, const game::Session& s, const float time) const
 {
     const game::Character& c = s.character();
-    const float pop = popIn(m_age);
+    const float pop = popAmount();
     const float lift = (1.0f - pop) * 30.0f;
     const Rect win{kShopWindow.x, kShopWindow.y + lift, kShopWindow.width, kShopWindow.height};
     const Rect in = ui::window(list, shapes, win, "pippa's general store", srgb(0xF2A0BE));
@@ -699,7 +714,7 @@ void Windows::drawShop(gamelib::draw::DrawList& list, const Shapes& shapes, cons
 void Windows::drawSmith(gamelib::draw::DrawList& list, const Shapes& shapes, const game::Session& s, const float time) const
 {
     const game::Character& c = s.character();
-    const float pop = popIn(m_age);
+    const float pop = popAmount();
     const Rect win{400.0f, 120.0f + (1.0f - pop) * 30.0f, 1120.0f, 840.0f};
     const Rect in = ui::window(list, shapes, win, "brann's forge", srgb(0xE09A6A));
     const int ore = c.bag.countOf(game::materialItem(game::Material::GlimmerOre));

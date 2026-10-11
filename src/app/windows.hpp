@@ -35,12 +35,25 @@ enum class WindowKey { None, QuickHp, QuickMp, Auto, Tab };
 class Windows {
 public:
     void open(WindowId id);
-    void close() { m_open = WindowId::None; }
+    // Closing lets the window drop away for a moment (drawn, not open).
+    void close()
+    {
+        if (m_open != WindowId::None) {
+            m_closing = m_open;
+            m_closeAge = 0.0f;
+        }
+        m_open = WindowId::None;
+    }
     [[nodiscard]] WindowId current() const { return m_open; }
     [[nodiscard]] bool isOpen() const { return m_open != WindowId::None; }
     WindowFeedback handle(gamelib::ui::MenuInput input, game::Session& session);
     WindowFeedback handleKey(WindowKey key, game::Session& session);
-    void update(float seconds) { m_age += seconds; m_flash.update(seconds); }
+    void update(float seconds)
+    {
+        m_age += seconds;
+        m_closeAge += seconds;
+        m_flash.update(seconds);
+    }
     void draw(gamelib::draw::DrawList& list, const Shapes& shapes, const game::Session& session,
               const gamelib::platform::ActionMap& actions, gamelib::core::Size canvas, float time) const;
 
@@ -59,6 +72,9 @@ private:
         int row = 0;
     };
     WindowId m_open = WindowId::None;
+    WindowId m_closing = WindowId::None; // the window dropping away after close()
+    float m_closeAge = 1.0f;
+    [[nodiscard]] float popAmount() const; // 0..1 in (eased), past 1 to 0 and below while closing
     int m_cursor = 0;
     gamelib::ui::StatWindow m_statWindow{game::kCoreCount}; // the stat rows and auto-assign
     gamelib::ui::SlotGrid m_slotGrid;                        // the equipment slots, then the bag
