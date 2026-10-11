@@ -203,11 +203,6 @@ bool Character::spendPoint(const Core stat)
     return true;
 }
 
-Core Character::autoAssignNext() const
-{
-    return points.nextAuto(kAutoWeights);
-}
-
 int Character::autoAssign()
 {
     const int spent = points.autoAssign(kAutoWeights);

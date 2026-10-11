@@ -76,8 +76,6 @@ public:
     // Spends every point by the balanced weights (STR 2 : AGI 1 : VIT 1 :
     // MAG 1); returns how many were spent.
     int autoAssign();
-    // The core stat the next auto-assigned point would raise.
-    [[nodiscard]] Core autoAssignNext() const;
 
     // Adds experience; level-ups grant points, raise HP and MP and refill them.
     gamelib::core::LevelUp gainXp(std::int64_t amount);
