@@ -51,12 +51,11 @@ void WayfarerGame::drawMenu(gamelib::draw::DrawList& list, const float time) con
     const bool title = m_menus.is(ArcadeScreen::Title);
     // GameLib lays the menu out; the window, its title bar and the rows are
     // Wayfarer's shader frames. The menu's own title is laid out but not
-    // drawn (transparent): the window's bar shows it (none on the title screen).
+    // drawn (an empty title painter): the window's bar shows it (none on the title screen).
     constexpr float kTitleSize = 32.0f;
     const std::string barTitle = title ? std::string{} : lower(menu->title());
     gamelib::ui::MenuStyle style{
         .veil = title ? Color{0.0f, 0.0f, 0.0f, 0.0f} : srgb(0x1A1428, 0.45f),
-        .title = srgb(0xFFFFFF, 0.0f),
         .text = ui_color::kSoftInk,
         .highlight = ui_color::kInk,
         .dim = ui_color::kSoftInk,
@@ -90,7 +89,8 @@ void WayfarerGame::drawMenu(gamelib::draw::DrawList& list, const float time) con
                 addUi(out, m_shapes, Ui::Button, pill, ui_color::kButton, ui_color::kGold, 1.0f);
                 addUi(out, m_shapes, Ui::Arrow, {pill.x + 14.0f + std::sin(time * 7.0f) * 3.0f, pill.center().y - 12.0f, 24.0f, 24.0f},
                       ui_color::kGold, ui_color::kGold);
-            }};
+            },
+        .titlePainter = [](gamelib::draw::DrawList&, const Rect&, std::string_view) {}}; // the window's bar shows it
     list.setLayer(kScreenLayer);
     gamelib::ui::drawMenu(list, *menu, m_canvas, style);
 }
@@ -157,7 +157,6 @@ void WayfarerGame::drawSlots(gamelib::draw::DrawList& list, const float time) co
     const int slots = m_slotList.slotCount();
     gamelib::ui::SaveSlotStyle style{
         .menu = {.veil = srgb(0x1A1428, 0.3f),
-                 .title = srgb(0xFFFFFF, 0.0f),
                  .text = ui_color::kSoftInk,
                  .highlight = ui_color::kInk,
                  .dim = ui_color::kSoftInk,
@@ -185,7 +184,8 @@ void WayfarerGame::drawSlots(gamelib::draw::DrawList& list, const float time) co
                              ui::text(out, "left: erase", row.right() - 26.0f, row.center().y - 11.0f,
                                       {.size = 21.0f, .color = ui_color::kSoftInk, .align = Align::Right});
                          }
-                     }},
+                     },
+                 .titlePainter = [](gamelib::draw::DrawList&, const Rect&, std::string_view) {}},
         .danger = ui_color::kBad,
         .width = 1040.0f,
         .rowHeight = 128.0f,

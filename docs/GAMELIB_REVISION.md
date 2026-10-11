@@ -14,3 +14,4 @@ messages); bump the pin only together with a new row.
 | 2026-10-11 | `3174481f68a99df8554f0321d8c956f7db14b745` | Wayfarer P0 batch 2: drawParallaxSprites draws Hearthvale's back row (replaces the skyline loop) |
 | 2026-10-11 | `df24f902c3eebdd21bf3a3845e5c331822042202` | Wayfarer P0 batch 3: fx::Banners draws the map title, GameClock::nightAmount, duskAmount and draw::lerp(ColorGrade) blend day and night |
 | 2026-10-11 | `5cdebe0bde76da3f1970da4f83ac4ac5cd5525d5` | Wayfarer P0 batch 4: game-drawn frames for menus, save slots, the dialogue box and the stat window; item card icons; quest record saves (all adopted) |
+| 2026-10-11 | `a8753e47a9a5dc9cdb72ad24f41e51183c0e28d3` | Wayfarer P0 batch 5: title painters replace the transparent-title trick; the orange points number, the bold "+" and the 30-size dialogue choices are back |

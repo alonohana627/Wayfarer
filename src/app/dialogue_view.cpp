@@ -42,6 +42,8 @@ gamelib::ui::DialogueBoxStyle boxStyle(const Shapes& shapes, const std::shared_p
         .tagAt = gamelib::core::Vec2{344.0f, -34.0f},
         .tagPadding = {30.0f, 16.0f},
         .choiceHeight = 58.0f,
+        .choiceFont = Font::vector(30.0f, 1.25f),
+        .selectedWeight = 1.2f,
         .tagPainter = [&shapes](gamelib::draw::DrawList& list,
                                 const Rect& tag) { addUi(list, shapes, Ui::Button, tag, srgb(0x8CCAD6), ui_color::kGold, 0.0f); },
         .choicePainter =

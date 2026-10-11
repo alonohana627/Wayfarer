@@ -340,17 +340,18 @@ void Windows::drawStats(gamelib::draw::DrawList& list, const Shapes& shapes, con
         return bounce;
     };
     // GameLib lays the window out and writes its text; the frames, rows,
-    // icons, buttons and the portrait are Wayfarer's. (The title is laid
-    // out tiny and transparent: the window's title bar shows it.)
+    // icons, buttons and the portrait are Wayfarer's. (The title only keeps its
+    // room, small: the window's title bar shows it.)
     const gamelib::ui::StatWindowStyle style{
         .panel = {.painter = [&](gamelib::draw::DrawList& out, const Rect& rect) { (void)ui::window(out, shapes, rect, "character"); }},
         .titleFont = Font::vector(2.7f, 1.0f),
         .font = Font::vector(30.0f, 1.55f),
         .smallFont = Font::vector(26.0f, 1.35f),
-        .title = srgb(0xFFFFFF, 0.0f),
         .text = ui_color::kInk,
         .dim = ui_color::kSoftInk,
         .highlight = ui_color::kInk,
+        .pointsColor = srgb(0xE0901E),
+        .plusFont = Font::vector(40.0f, 2.4f),
         .better = ui_color::kGood,
         .worse = ui_color::kBad,
         .padding = 40.0f,
@@ -377,7 +378,8 @@ void Windows::drawStats(gamelib::draw::DrawList& list, const Shapes& shapes, con
             [&](gamelib::draw::DrawList& out, const Rect& button, const bool enabled, const bool selected) {
                 addUi(out, shapes, Ui::Button, button, enabled ? srgb(0xFFD86A) : srgb(0xE8E0D0), ui_color::kGold,
                       enabled ? (selected ? 1.0f : 0.0f) : 3.0f);
-            }};
+            },
+        .titlePainter = [](gamelib::draw::DrawList&, const Rect&, std::string_view) {}}; // the window's bar shows it
 
     const game::Derived now = s.derived();
     const game::CoreStats preview = m_cursor < 4 ? c.points.preview(static_cast<game::Core>(m_cursor)) : c.points.base();
