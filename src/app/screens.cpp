@@ -375,6 +375,10 @@ void WayfarerGame::drawSheet(gamelib::draw::DrawList& list, const float time) co
             boss.feet = {200.0f + static_cast<float>(b) * 380.0f, 800.0f};
             boss.height = 380.0f;
             boss.phase = b % 3;
+            boss.kind = b;
+            const MonsterColors bc = bossColors(static_cast<game::BossId>(b));
+            boss.body = bc.body;
+            boss.cap = bc.accent;
             boss.state = anime::MonsterState::Idle;
             list.add(anime::bossSprite(boss, m_shapes.boss));
             label(game::bossInfo(static_cast<game::BossId>(b)).name, boss.feet.x, 830.0f);

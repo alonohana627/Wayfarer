@@ -94,19 +94,19 @@ void forestDeep(MapDef& def)
     MapBuilder b{100, 28};
     b.ground(0, 99, g);
     b.rampUp(12, g, 2).ground(14, 22, g - 2).rampDown(23, g, 2);
-    b.foothold(16, 24, 17).foothold(26, 34, 14).rope(30, 14, 22);
+    b.foothold(16, 24, 17).rope(18, 17, 20).foothold(26, 34, 14).rope(30, 14, 22);
     b.block(38, 41, g - 4, g).ladder(37, g - 4, g - 1).foothold(42, 50, g - 4);
     b.foothold(46, 54, 15).rope(50, 15, g - 5);
     b.rampUp(58, g, 2).ground(60, 74, g - 2).rampDown(75, g, 2);
-    b.foothold(62, 72, 17).foothold(66, 70, 14);
-    b.foothold(80, 88, 19).foothold(84, 92, 16).rope(86, 16, g - 1);
+    b.foothold(62, 72, 17).rope(64, 17, 20).foothold(66, 70, 14);
+    b.foothold(80, 88, 19).rope(82, 19, g - 1).foothold(84, 92, 16).rope(86, 16, g - 1);
     def.text = b.take();
     def.portals = {
         {.kind = PortalKind::Door, .at = feetOn(3.0f, g), .to = MapId::Forest2, .toPortal = 1, .label = "Mossy Hollow"},
         {.kind = PortalKind::Door, .at = feetOn(96.0f, g), .to = MapId::ForestArena, .toPortal = 0, .label = "Grandcap's Glade"},
     };
     def.spawns = {
-        {S::Stumpling, runOn(6, 36, g), 2}, {S::Pudgy, runOn(14, 22, g - 2), 1}, {S::Bellcap, runOn(16, 24, 17), 1},
+        {S::Stumpling, runOn(26, 36, g), 2}, {S::Pudgy, runOn(14, 22, g - 2), 1}, {S::Bellcap, runOn(16, 24, 17), 1},
         {S::Stumpling, runOn(26, 34, 14), 1}, {S::Pudgy, runOn(42, 57, g), 2},  {S::Bellcap, runOn(42, 50, g - 4), 1},
         {S::Stumpling, runOn(46, 54, 15), 1}, {S::Pudgy, runOn(60, 74, g - 2), 2}, {S::Bellcap, runOn(62, 72, 17), 1},
         {S::Stumpling, runOn(77, 92, g), 2},  {S::PinkMochi, runOn(84, 92, 16), 1},
@@ -128,7 +128,7 @@ void forestArena(MapDef& def)
     constexpr int g = 19;
     MapBuilder b{44, 24};
     b.ground(0, 43, g);
-    b.foothold(5, 11, 15).foothold(32, 38, 15);
+    b.foothold(5, 11, 16).foothold(32, 38, 16);
     def.text = b.take();
     def.portals = {
         {.kind = PortalKind::Door, .at = feetOn(2.5f, g), .to = MapId::ForestDeep, .toPortal = 1, .label = "The Rootway"},
@@ -138,7 +138,7 @@ void forestArena(MapDef& def)
     def.arena = Arena{.boss = BossId::Grandcap, .bossFeet = feetOn(31.0f, g), .bounds = {tx(1.0f), 0.0f, tx(42.0f), g * kTile}};
     const float y = g * kTile;
     def.decos = {
-        {K::BigShroom, {tx(1.5f), y}, 0, 1.4f, false}, {K::BigShroom, {tx(42.0f), y}, 1, 1.5f, false},
+        {K::BigShroom, {tx(-1.5f), y}, 0, 1.4f, false}, {K::BigShroom, {tx(45.0f), y}, 1, 1.5f, false},
         {K::Torch, {tx(5.0f), y}, 0, 1.0f, false},     {K::Torch, {tx(39.0f), y}, 0, 1.0f, false},
         {K::Grass, {tx(14.0f), y}, 0, 1.0f, true},     {K::Grass, {tx(29.0f), y}, 0, 1.0f, true},
     };

@@ -11,7 +11,10 @@ add_library(wayfarer_game STATIC
     items.cpp
     maps.cpp
     maps_forest.cpp
-    maps_regions.cpp
+    maps_marsh.cpp
+    maps_mines.cpp
+    maps_peak.cpp
+    maps_ruins.cpp
     maps_town.cpp
     monsters.cpp
     session.cpp

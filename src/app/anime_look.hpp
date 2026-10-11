@@ -129,6 +129,8 @@ struct Boss {
     int phase = 0; // 0 calm colors, 1 angry (glowing eyes, darker cap), 2 enraged (aura)
     gamelib::core::Color body = gamelib::core::srgb(0xF3DFC2);
     gamelib::core::Color cap = gamelib::core::srgb(0xA06CE4);
+    int kind = 0;        // boss.frag kinds (game::BossId order)
+    bool guarded = false; // in its shell
 };
 
 [[nodiscard]] inline gamelib::draw::Sprite bossSprite(const Boss& b, const gamelib::draw::ShapeId shape)
@@ -138,7 +140,8 @@ struct Boss {
             .color = b.body,
             .color2 = b.cap,
             .shape = shape,
-            .params = {static_cast<float>(b.phase), static_cast<float>(b.state), b.progress, b.facing < 0.0f ? -1.0f : 1.0f}};
+            .params = {static_cast<float>(b.phase), static_cast<float>(b.state), b.progress, b.facing < 0.0f ? -1.0f : 1.0f},
+            .bits = static_cast<std::uint64_t>(b.kind & 7) | (b.guarded ? 8u : 0u)};
 }
 
 // ---------------------------------------------------------------------------

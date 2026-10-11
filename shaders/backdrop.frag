@@ -103,6 +103,9 @@ vec4 sky(vec2 uv, vec2 q, float night, uint region)
 
 vec4 clouds(vec2 q, float night)
 {
+    if ((sprite.bits.x & 7u) == 2u) {
+        return vec4(0.0); // no clouds underground
+    }
     // Puffy clouds with flat-ish bottoms, drifting slowly.
     q.x += sprite.time * 9.0;
     float period = 620.0;

@@ -409,3 +409,18 @@ MonsterScale monsterScale(const game::Archetype archetype, const float boxHeight
     return {.quad = quad, .top = drawn};
 }
 } // namespace wayfarer::app
+
+namespace wayfarer::app {
+MonsterColors bossColors(const game::BossId boss)
+{
+    switch (boss) {
+    case game::BossId::Grandcap: return {srgb(0xF3DFC2), srgb(0x5CC8B0)};
+    case game::BossId::Rumblerock: return {srgb(0xA49CC0), srgb(0x7FE6FF)};
+    case game::BossId::Murkshell: return {srgb(0xDDEA9C), srgb(0x8E6AD8)};
+    case game::BossId::Warden: return {srgb(0xFFF2D2), srgb(0xFFB040)};
+    case game::BossId::Hush: return {srgb(0xF4F0FF), srgb(0x3A3478)};
+    case game::BossId::Count: break;
+    }
+    return {srgb(0xFFFFFF), srgb(0xFFFFFF)};
+}
+} // namespace wayfarer::app

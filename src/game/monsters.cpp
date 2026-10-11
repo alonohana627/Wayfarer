@@ -79,7 +79,7 @@ const Species& species(const SpeciesId id)
 
 int monsterHp(const int level, const bool elite)
 {
-    const int hp = 30 + 15 * level + 4 * level * level;
+    const int hp = 30 + 14 * level + level * level * 13 / 5;
     return elite ? hp * 3 : hp;
 }
 

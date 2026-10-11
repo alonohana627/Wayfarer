@@ -94,3 +94,7 @@ struct MonsterScale {
 };
 [[nodiscard]] MonsterScale monsterScale(game::Archetype archetype, float boxHeight, bool elite);
 } // namespace wayfarer::app
+
+namespace wayfarer::app {
+[[nodiscard]] MonsterColors bossColors(game::BossId boss);
+} // namespace wayfarer::app

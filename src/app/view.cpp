@@ -586,6 +586,11 @@ void WorldView::drawBoss(gamelib::draw::DrawList& list, const Shapes& shapes, co
     look.height = b.info().size.y * 2.15f;
     look.facing = static_cast<float>(b.facing);
     look.phase = b.phase;
+    look.kind = static_cast<int>(b.id);
+    look.guarded = b.guarded;
+    const MonsterColors bc = bossColors(b.id);
+    look.body = bc.body;
+    look.cap = bc.accent;
     using MS = anime::MonsterState;
     switch (b.state) {
     case game::BossState::Intro:

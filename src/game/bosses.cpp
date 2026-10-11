@@ -24,15 +24,15 @@ const std::array<BossInfo, kBossCount>& infos()
 {
     using A = BossAction;
     static const std::array<BossInfo, kBossCount> t{{
-        {"Grandcap", "Elder of Bellwood", 7, false, {150, 168}, 1.5f, {A::Stomp, A::Rain, A::Summon}, SpeciesId::Bellcap,
+        {"Grandcap", "Elder of Bellwood", 7, false, {200, 224}, 1.5f, {A::Stomp, A::Rain, A::Summon}, SpeciesId::Bellcap,
          ShotLook::Spore},
-        {"Rumblerock", "Heart of the Glimmerdeep", 13, false, {176, 150}, 1.4f, {A::Throw, A::Charge, A::Rain},
+        {"Rumblerock", "Heart of the Glimmerdeep", 13, false, {230, 206}, 1.4f, {A::Throw, A::Charge, A::Rain},
          SpeciesId::Pebblet, ShotLook::Rock},
-        {"Queen Murkshell", "Mother of the Mire", 19, false, {190, 156}, 1.1f, {A::Spin, A::Volley, A::Summon},
+        {"Queen Murkshell", "Mother of the Mire", 19, false, {250, 196}, 1.1f, {A::Spin, A::Volley, A::Summon},
          SpeciesId::BogMochi, ShotLook::Bubble},
-        {"The Lantern Warden", "Keeper of Sunspire", 25, true, {150, 176}, 2.0f, {A::Fan, A::Teleport, A::Dive, A::Rain},
+        {"The Lantern Warden", "Keeper of Sunspire", 25, true, {190, 226}, 2.0f, {A::Fan, A::Teleport, A::Dive, A::Rain},
          SpeciesId::Wisp, ShotLook::Flame},
-        {"The Hush", "Silence upon the Peak", 31, true, {180, 210}, 2.2f,
+        {"The Hush", "Silence upon the Peak", 31, true, {220, 270}, 2.2f,
          {A::Fan, A::Dive, A::Rain, A::Summon, A::Teleport}, SpeciesId::FrostWisp, ShotLook::Ice},
     }};
     return t;
@@ -127,12 +127,13 @@ const BossInfo& bossInfo(const BossId id)
 int bossHp(const BossId id)
 {
     const int level = bossInfo(id).level;
-    return monsterHp(level, false) * (id == BossId::Hush ? 16 : 12);
+    constexpr int kMultiplier[kBossCount] = {24, 24, 20, 13, 16};
+    return monsterHp(level, false) * kMultiplier[static_cast<int>(id)];
 }
 
 int bossAttack(const BossId id)
 {
-    return monsterAttack(bossInfo(id).level, false) * 13 / 10;
+    return monsterAttack(bossInfo(id).level, false) * 3 / 2;
 }
 
 int bossXp(const BossId id)
