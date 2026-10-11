@@ -16,7 +16,9 @@
 #include <gamelib/draw/draw_list.hpp>
 #include <gamelib/fx/transients.hpp>
 #include <gamelib/platform/actions.hpp>
+#include <gamelib/ui/item_grid.hpp>
 #include <gamelib/ui/menu.hpp>
+#include <gamelib/ui/stat_window.hpp>
 
 #include <string>
 
@@ -58,6 +60,8 @@ private:
     };
     WindowId m_open = WindowId::None;
     int m_cursor = 0;
+    gamelib::ui::StatWindow m_statWindow{game::kCoreCount}; // the stat rows and auto-assign
+    gamelib::ui::SlotGrid m_slotGrid;                        // the equipment slots, then the bag
     int m_tab = 0;      // shop: 0 buy, 1 sell
     int m_scroll = 0;   // first visible row of long lists
     float m_age = 0.0f;

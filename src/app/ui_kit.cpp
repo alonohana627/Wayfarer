@@ -1,6 +1,7 @@
 #include "ui_kit.hpp"
 
 #include <gamelib/draw/vector_text.hpp>
+#include <gamelib/ui/item_grid.hpp>
 
 #include <algorithm>
 #include <format>
@@ -151,28 +152,25 @@ float itemCard(gamelib::draw::DrawList& list, const Shapes& shapes, const Rect r
     }
     const game::ItemInfo& info = game::itemInfo(stack.item);
     const game::Rarity rarity = game::rarityOf(stack);
-    float y = rect.y;
-    std::string name = def->name;
+    gamelib::ui::ItemCard card;
+    card.name = def->name;
     if (game::upgradeOf(stack) > 0) {
-        name += std::format(" +{}", game::upgradeOf(stack));
+        card.name += std::format(" +{}", game::upgradeOf(stack));
     }
-    const Color nameColor = rarity == game::Rarity::Common ? ui_color::kInk : rarityColor(rarity).scaled(0.85f);
-    text(list, name, rect.x, y, {.size = 32.0f, .color = nameColor, .weight = 1.7f});
-    y += 42.0f;
-    std::string kind;
+    card.nameColor = rarity == game::Rarity::Common ? ui_color::kInk : rarityColor(rarity).scaled(0.85f);
     switch (info.kind) {
     case game::ItemKind::Equip:
-        kind = std::format("{} {}  -  level {}", game::rarityName(rarity), game::slotName(static_cast<game::Slot>(def->equipSlot)),
-                           def->levelRequirement);
+        card.subtitle = std::format("{} {}  -  level {}", game::rarityName(rarity),
+                                    game::slotName(static_cast<game::Slot>(def->equipSlot)), def->levelRequirement);
         break;
-    case game::ItemKind::Use: kind = "consumable"; break;
-    case game::ItemKind::Material: kind = "material"; break;
-    case game::ItemKind::Quest: kind = "quest item"; break;
+    case game::ItemKind::Use: card.subtitle = "consumable"; break;
+    case game::ItemKind::Material: card.subtitle = "material"; break;
+    case game::ItemKind::Quest: card.subtitle = "quest item"; break;
     }
-    const bool tooLow = info.kind == game::ItemKind::Equip && def->levelRequirement > character.level;
-    text(list, kind, rect.x, y, {.size = 22.0f, .color = tooLow ? ui_color::kBad : ui_color::kSoftInk});
-    y += 34.0f;
+    card.subtitleWarning = info.kind == game::ItemKind::Equip && def->levelRequirement > character.level;
     if (info.kind == game::ItemKind::Equip) {
+        // Wayfarer's bonuses (base, rolled and upgrades folded in by stackBonus),
+        // against the worn piece when comparing.
         const auto& worn = character.gear.at(def->equipSlot);
         for (int b = 0; b < game::kBonusCount; ++b) {
             const auto bonus = static_cast<game::Bonus>(b);
@@ -184,21 +182,21 @@ float itemCard(gamelib::draw::DrawList& list, const Shapes& shapes, const Rect r
             if (value == 0 && wornValue == 0) {
                 continue;
             }
-            const std::string line = std::format("{}  +{}", game::bonusName(bonus), value);
-            text(list, line, rect.x, y, {.size = 25.0f, .color = ui_color::kInk});
-            if (compare && value != wornValue) {
-                const int diff = value - wornValue;
-                text(list, std::format("{}{}", diff > 0 ? "+" : "", diff), rect.right(), y,
-                     {.size = 25.0f, .color = diff > 0 ? ui_color::kGood : ui_color::kBad, .weight = 1.5f, .align = Align::Right});
-            }
-            y += 32.0f;
+            card.lines.push_back({.label = std::string{game::bonusName(bonus)}, .value = value,
+                                  .difference = compare ? std::optional<int>{value - wornValue} : std::nullopt});
         }
     }
-    if (!info.text.empty()) {
-        y += 6.0f;
-        y += paragraph(list, info.text, rect.x, y, rect.width, {.size = 22.0f, .color = ui_color::kSoftInk}, 1.25f);
-    }
-    return y - rect.y;
+    card.text = info.text;
+    const gamelib::ui::ItemCardStyle style{.nameFont = gamelib::draw::Font::vector(32.0f, 1.7f),
+                                           .font = gamelib::draw::Font::vector(25.0f, 1.25f),
+                                           .smallFont = gamelib::draw::Font::vector(22.0f, 1.2f),
+                                           .text = ui_color::kInk,
+                                           .dim = ui_color::kSoftInk,
+                                           .warning = ui_color::kBad,
+                                           .better = ui_color::kGood,
+                                           .worse = ui_color::kBad,
+                                           .gap = 14.0f};
+    return gamelib::ui::drawItemCard(list, card, rect, style);
 }
 
 } // namespace wayfarer::app::ui

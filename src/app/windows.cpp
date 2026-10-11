@@ -47,18 +47,16 @@ Rect grid(const Vec2 origin, const int index)
 constexpr Rect kInvWindow{300.0f, 110.0f, 1320.0f, 860.0f};
 constexpr Vec2 kInvGrid{770.0f, 196.0f};
 
-std::array<Rect, game::kSlotCount + game::kBagSlots> inventoryRects()
+std::vector<Rect> inventoryRects()
 {
-    std::array<Rect, game::kSlotCount + game::kBagSlots> r{};
+    std::vector<Rect> r(game::kSlotCount);
     const float cx = 520.0f;
     r[static_cast<std::size_t>(game::Slot::Helmet)] = {cx - 50.0f, 190.0f, kSlotSize, kSlotSize};
     r[static_cast<std::size_t>(game::Slot::Weapon)] = {cx - 175.0f, 316.0f, kSlotSize, kSlotSize};
     r[static_cast<std::size_t>(game::Slot::Armor)] = {cx + 75.0f, 316.0f, kSlotSize, kSlotSize};
     r[static_cast<std::size_t>(game::Slot::Ring)] = {cx - 175.0f, 446.0f, kSlotSize, kSlotSize};
     r[static_cast<std::size_t>(game::Slot::Shoes)] = {cx + 75.0f, 446.0f, kSlotSize, kSlotSize};
-    for (int i = 0; i < game::kBagSlots; ++i) {
-        r[static_cast<std::size_t>(game::kSlotCount + i)] = grid(kInvGrid, i);
-    }
+    std::ranges::copy(gamelib::ui::gridRects(kInvGrid, game::kBagSlots, kGridColumns, kSlotSize, 10.0f), std::back_inserter(r));
     return r;
 }
 
@@ -108,6 +106,9 @@ void Windows::open(const WindowId id)
 {
     m_open = id;
     m_cursor = 0;
+    m_statWindow.select(0);
+    m_slotGrid.setSlots(inventoryRects());
+    m_slotGrid.select(0);
     m_tab = 0;
     m_scroll = 0;
     m_age = 0.0f;
@@ -164,15 +165,16 @@ WindowFeedback Windows::handle(const MenuInput input, game::Session& s)
     const game::Character& c = s.character();
     switch (m_open) {
     case WindowId::Stats: {
-        if (dirY(input) != 0) {
-            m_cursor = (m_cursor + dirY(input) + 5) % 5;
+        const gamelib::ui::StatResult r = m_statWindow.handle(input);
+        m_cursor = static_cast<int>(m_statWindow.cursor());
+        if (r.action == gamelib::ui::StatAction::Moved) {
             return WindowFeedback::Moved;
         }
-        if (input == MenuInput::Confirm) {
-            if (m_cursor == 4) {
-                return handleKey(WindowKey::Auto, s);
-            }
-            if (s.spendPoint(static_cast<game::Core>(m_cursor))) {
+        if (r.action == gamelib::ui::StatAction::Auto) {
+            return handleKey(WindowKey::Auto, s);
+        }
+        if (r.action == gamelib::ui::StatAction::Spend) {
+            if (s.spendPoint(static_cast<game::Core>(r.stat))) {
                 m_flash.add({.row = m_cursor}, 0.35f);
                 return WindowFeedback::Done;
             }
@@ -196,16 +198,12 @@ WindowFeedback Windows::handle(const MenuInput input, game::Session& s)
         break;
     }
     case WindowId::Inventory: {
-        if (dirX(input) != 0 || dirY(input) != 0) {
-            const auto rects = inventoryRects();
-            const int next = gamelib::ui::stepFocus(rects, m_cursor, dirX(input), dirY(input), false);
-            if (next != m_cursor) {
-                m_cursor = next;
-                return WindowFeedback::Moved;
-            }
-            return WindowFeedback::None;
+        const gamelib::ui::SlotEvent event = m_slotGrid.handle(input);
+        m_cursor = m_slotGrid.cursor();
+        if (event == gamelib::ui::SlotEvent::Moved) {
+            return WindowFeedback::Moved;
         }
-        if (input == MenuInput::Confirm) {
+        if (event == gamelib::ui::SlotEvent::Confirmed) {
             bool ok = false;
             if (m_cursor < game::kSlotCount) {
                 ok = s.unequip(static_cast<game::Slot>(m_cursor));
