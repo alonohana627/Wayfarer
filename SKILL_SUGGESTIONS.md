@@ -67,3 +67,32 @@ In `~/.claude/skills/` (checked 2026-10-11):
 
 ## Suggested
 
+
+### rpg-window-ui-in-shaders
+
+Building MapleStory-like RPG windows (character stats with ability-point
+buttons and derived numbers, a skill list with levels and key caps, a bag
+grid with equipment slots around a paper-doll portrait, buy/sell shop lists,
+an upgrade forge and a quest log) from one SDF UI shader and a vector font
+on a fixed 1920 x 1080 canvas: a window/well/slot/button/gauge kit, a
+consistent grid and type scale, item cards that compare with the equipped
+piece, keyboard focus moves between regions (stepFocus), pop-in timing,
+confirm/cancel flows, and screenshot checks for clipped or overlapping text.
+
+Why: Wayfarer's six windows were laid out by hand from scratch, and the
+screenshots kept finding collisions (the coin count under the item card,
+a role label across the dialogue frame) that a layout recipe would prevent.
+
+### hub-town-composition
+
+Composing a side-scrolling hub town that reads cozy and dense: a street of
+distinct buildings every screen (inn, shop, smithy, elder's house, cottages,
+a landmark), props between them (fountain, stalls, bunting, lamps, flower
+beds, fences, crates), a hazed back row of houses and trees on a parallax
+layer, NPC placement by day and night next to their buildings, where the
+hub's portals go (an edge plaza), and a contact sheet of the whole street by
+day and night as the review.
+
+Why: Hearthvale first read as sparse (a row of waystones, a well and one
+house in view) and needed a second layout pass; the art skills cover single
+houses but not the street.
