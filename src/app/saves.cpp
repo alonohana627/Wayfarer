@@ -2,6 +2,7 @@
 
 #include "profile.hpp"
 
+#include <gamelib/app/rpg_file.hpp>
 #include <gamelib/app/world_file.hpp>
 #include <gamelib/core/timers.hpp>
 #include <gamelib/storage/files.hpp>
@@ -28,47 +29,6 @@ std::string slotName(const int slot)
     return std::to_string(slot + 1);
 }
 
-// "item count rarity stat:value stat:value"
-std::string writeStack(const ItemStack& s)
-{
-    if (s.empty()) {
-        return "0";
-    }
-    std::string out = std::format("{} {} {}", s.item, s.count, s.rarity);
-    for (const auto& b : s.bonuses) {
-        out += std::format(" {}:{}", b.stat, b.value);
-    }
-    return out;
-}
-
-ItemStack readStack(const std::string_view text)
-{
-    std::istringstream in{std::string{text}};
-    ItemStack s;
-    in >> s.item;
-    if (s.item == 0 || game::itemRegistry().find(s.item) == nullptr) {
-        return {};
-    }
-    in >> s.count >> s.rarity;
-    s.count = std::clamp(s.count, 1, 99);
-    s.rarity = std::clamp(s.rarity, 0, game::kRarityCount - 1);
-    std::string pair;
-    while (in >> pair) {
-        const auto colon = pair.find(':');
-        if (colon == std::string::npos) {
-            continue;
-        }
-        int stat = 0;
-        int value = 0;
-        std::from_chars(pair.data(), pair.data() + colon, stat);
-        std::from_chars(pair.data() + colon + 1, pair.data() + pair.size(), value);
-        if (stat >= 0 && stat < game::kBonusCount) {
-            s.bonuses.push_back({stat, value});
-        }
-    }
-    return s;
-}
-
 IniFile write(const game::SaveData& d)
 {
     IniFile ini;
@@ -76,24 +36,17 @@ IniFile write(const game::SaveData& d)
     ini.setInt("hero", "level", c.level);
     ini.setInt("hero", "xp", c.xp);
     for (int i = 0; i < game::kCoreCount; ++i) {
-        ini.setInt("hero", game::coreShort(static_cast<game::Core>(i)), c.base.values[static_cast<std::size_t>(i)]);
+        ini.setInt("hero", game::coreShort(static_cast<game::Core>(i)), c.points.base().values[static_cast<std::size_t>(i)]);
     }
-    ini.setInt("hero", "ability_points", c.abilityPoints);
-    ini.setInt("hero", "skill_points", c.skills.points());
+    ini.setInt("hero", "ability_points", c.points.available());
     ini.setInt("hero", "hp", c.hp.current);
     ini.setInt("hero", "mp", c.mp.current);
     ini.setInt("hero", "coins", c.coins);
     ini.setInt("hero", "quick_hp", c.quick[0]);
     ini.setInt("hero", "quick_mp", c.quick[1]);
-    for (int s = 0; s < game::kSkillCount; ++s) {
-        ini.setInt("skills", std::to_string(s), c.skills.levelOf(s));
-    }
-    for (int i = 0; i < c.bag.size(); ++i) {
-        ini.set("bag", std::to_string(i), writeStack(c.bag.at(i)));
-    }
-    for (int i = 0; i < c.gear.size(); ++i) {
-        ini.set("gear", std::to_string(i), writeStack(c.gear.at(i)));
-    }
+    gamelib::app::writeSkillBook(c.skills, ini, "skills");
+    gamelib::app::writeInventory(c.bag, ini, "bag");
+    gamelib::app::writeEquipment(c.gear, ini, "gear");
     for (const auto& q : d.quests) {
         std::string line = std::to_string(static_cast<int>(q.state));
         for (const int p : q.progress) {
@@ -123,28 +76,19 @@ game::SaveData read(const IniFile& ini)
     game::Character& c = d.character;
     c.level = ini.getInt("hero", "level", 1, game::kMaxLevel).value_or(1);
     c.xp = std::max<long long>(0, ini.getInt("hero", "xp").value_or(0));
+    game::CoreStats base;
     for (int i = 0; i < game::kCoreCount; ++i) {
-        c.base.values[static_cast<std::size_t>(i)] =
+        base.values[static_cast<std::size_t>(i)] =
             ini.getInt("hero", game::coreShort(static_cast<game::Core>(i)), 1, 999).value_or(game::kStartCore);
     }
-    c.abilityPoints = ini.getInt("hero", "ability_points", 0, 999).value_or(0);
-    for (int s = 0; s < game::kSkillCount; ++s) {
-        c.skills.setLevel(s, ini.getInt("skills", std::to_string(s), 0, 20).value_or(s == 0 ? 1 : 0));
-    }
-    c.skills.addPoints(ini.getInt("hero", "skill_points", 0, 999).value_or(0));
+    c.points.restore(base, ini.getInt("hero", "ability_points", 0, 999).value_or(0));
+    gamelib::app::readSkillBook(ini, "skills", c.skills);
     c.coins = std::max<long long>(0, ini.getInt("hero", "coins").value_or(0));
     c.quick[0] = ini.getInt("hero", "quick_hp", 0, 9999).value_or(game::kRedPotion);
     c.quick[1] = ini.getInt("hero", "quick_mp", 0, 9999).value_or(game::kBluePotion);
-    c.bag.clear();
-    for (int i = 0; i < c.bag.size(); ++i) {
-        if (const auto v = ini.get("bag", std::to_string(i))) {
-            c.bag.setAt(i, readStack(*v));
-        }
-    }
-    for (int i = 0; i < c.gear.size(); ++i) {
-        if (const auto v = ini.get("gear", std::to_string(i))) {
-            c.gear.setAt(i, readStack(*v));
-        }
+    (void)gamelib::app::readInventory(ini, "bag", c.bag);
+    for (const ItemStack& misfit : gamelib::app::readEquipment(ini, "gear", c.gear)) {
+        (void)c.bag.add(misfit); // a piece that no longer fits its slot goes to the bag
     }
     if (c.gear.at(static_cast<int>(game::Slot::Weapon)).empty()) {
         c.gear.setAt(static_cast<int>(game::Slot::Weapon), {.item = game::kStarterSword, .count = 1});

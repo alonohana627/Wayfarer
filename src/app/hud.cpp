@@ -151,10 +151,10 @@ void Hud::drawBars(gamelib::draw::DrawList& list, const Shapes& shapes, const ga
     ui::text(list, std::format("{} / {}", c.mp.current, c.mp.max), gx + 40.0f + (gw - 40.0f) * 0.5f, panel.y + 60.0f,
              {.size = 21.0f, .color = srgb(0xFFFFFF), .weight = 1.5f, .align = Align::Center, .outline = true});
     // Unspent points: a nudge towards the stat and skill windows.
-    if (c.abilityPoints > 0 || c.skills.points() > 0) {
+    if (c.points.available() > 0 || c.skills.points() > 0) {
         std::string nudge;
-        if (c.abilityPoints > 0) {
-            nudge += std::format("{} ap", c.abilityPoints);
+        if (c.points.available() > 0) {
+            nudge += std::format("{} ap", c.points.available());
         }
         if (c.skills.points() > 0) {
             nudge += (nudge.empty() ? "" : "  ") + std::format("{} sp", c.skills.points());

@@ -28,7 +28,7 @@ constexpr int kHyperLockTicks = 12;
 constexpr int kHyperGlideTicks = 26;
 
 // Auto-assign weights (a balanced adventurer).
-constexpr std::array<int, kCoreCount> kAutoWeights{2, 1, 1, 1};
+const CoreStats kAutoWeights{{2, 1, 1, 1}};
 
 std::array<SkillDef, kSkillCount> buildSkills()
 {
@@ -143,12 +143,10 @@ std::string skillEffectText(const SkillId id, const int level)
 }
 
 Character::Character()
-    : bag{itemRegistry(), kBagSlots}
+    : points{CoreStats{{kStartCore, kStartCore, kStartCore, kStartCore}}}
+    , bag{itemRegistry(), kBagSlots}
     , gear{itemRegistry(), kSlotCount}
 {
-    for (Core c : {Core::Str, Core::Agi, Core::Vit, Core::Mag}) {
-        base[c] = kStartCore;
-    }
     for (const SkillDef& d : skillDefs()) {
         skills.define(d);
     }
@@ -167,10 +165,10 @@ int Character::gearBonus(const Bonus bonus) const
     return sum;
 }
 
-Derived Character::derivedWith(const CoreStats& points) const
+Derived Character::derivedWith(const CoreStats& base) const
 {
     Derived d;
-    d.core = points;
+    d.core = base;
     d.core[Core::Str] += gearBonus(Bonus::Str);
     d.core[Core::Agi] += gearBonus(Bonus::Agi);
     d.core[Core::Vit] += gearBonus(Bonus::Vit);
@@ -198,42 +196,22 @@ Derived Character::derivedWith(const CoreStats& points) const
 
 bool Character::spendPoint(const Core stat)
 {
-    if (abilityPoints <= 0) {
+    if (!points.spend(stat)) {
         return false;
     }
-    --abilityPoints;
-    ++base[stat];
     refreshResources();
     return true;
 }
 
 Core Character::autoAssignNext() const
 {
-    int spent = 0;
-    for (int i = 0; i < kCoreCount; ++i) {
-        spent += base.values[static_cast<std::size_t>(i)] - kStartCore;
-    }
-    // The stat furthest behind its share of the points spent so far plus one.
-    Core best = Core::Str;
-    double bestGap = -1e9;
-    for (int i = 0; i < kCoreCount; ++i) {
-        const double share = (spent + 1) * kAutoWeights[static_cast<std::size_t>(i)] / 5.0;
-        const double gap = share - (base.values[static_cast<std::size_t>(i)] - kStartCore);
-        if (gap > bestGap + 1e-9) {
-            bestGap = gap;
-            best = static_cast<Core>(i);
-        }
-    }
-    return best;
+    return points.nextAuto(kAutoWeights);
 }
 
 int Character::autoAssign()
 {
-    int spent = 0;
-    while (abilityPoints > 0) {
-        spendPoint(autoAssignNext());
-        ++spent;
-    }
+    const int spent = points.autoAssign(kAutoWeights);
+    refreshResources();
     return spent;
 }
 
@@ -242,7 +220,7 @@ gamelib::core::LevelUp Character::gainXp(const std::int64_t amount)
     const gamelib::core::LevelUp up = experienceCurve().gain(xp, amount);
     if (up.happened()) {
         level = up.to;
-        abilityPoints += up.levels() * kPointsPerLevel;
+        points.grant(up.levels() * kPointsPerLevel);
         skills.addPoints(up.levels() * kSkillPointsPerLevel);
         refreshResources();
         hp.refill();

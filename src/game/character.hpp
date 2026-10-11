@@ -55,8 +55,8 @@ public:
 
     int level = 1;
     std::int64_t xp = 0;
-    CoreStats base;          // points spent (kStartCore each at level 1)
-    int abilityPoints = 0;
+    // Ability points: kStartCore in each stat at level 1, five more a level.
+    gamelib::core::AbilityPoints<Core, kCoreCount> points;
     gamelib::core::SkillBook skills;
     gamelib::core::Resource hp;
     gamelib::core::Resource mp;
@@ -66,10 +66,10 @@ public:
     std::int64_t coins = 0;
     std::array<int, 2> quick{kRedPotion, kBluePotion}; // the HP and MP quick slots (item ids)
 
-    [[nodiscard]] Derived derived() const { return derivedWith(base); }
+    [[nodiscard]] Derived derived() const { return derivedWith(points.base()); }
     // The derived values as they would be with other base points (the stat
     // window's preview of a point before it is spent).
-    [[nodiscard]] Derived derivedWith(const CoreStats& points) const;
+    [[nodiscard]] Derived derivedWith(const CoreStats& base) const;
 
     // Spends one ability point on a core stat; false without points.
     bool spendPoint(Core stat);

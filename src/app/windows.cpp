@@ -356,15 +356,12 @@ void Windows::drawStats(gamelib::draw::DrawList& list, const Shapes& shapes, con
     const float w = in.right() - x0;
     float y = in.y + 4.0f;
     ui::text(list, "ability points", x0, y, {.size = 28.0f, .color = ui_color::kInk, .weight = 1.6f});
-    const float pulse = c.abilityPoints > 0 ? 1.0f + 0.08f * std::sin(time * 6.0f) : 1.0f;
-    ui::text(list, std::to_string(c.abilityPoints), in.right() - 10.0f, y - (pulse - 1.0f) * 20.0f,
-             {.size = 34.0f * pulse, .color = c.abilityPoints > 0 ? srgb(0xE0901E) : ui_color::kSoftInk, .weight = 2.0f, .align = Align::Right});
+    const float pulse = c.points.available() > 0 ? 1.0f + 0.08f * std::sin(time * 6.0f) : 1.0f;
+    ui::text(list, std::to_string(c.points.available()), in.right() - 10.0f, y - (pulse - 1.0f) * 20.0f,
+             {.size = 34.0f * pulse, .color = c.points.available() > 0 ? srgb(0xE0901E) : ui_color::kSoftInk, .weight = 2.0f, .align = Align::Right});
     y += 56.0f;
     const game::Derived now = s.derived();
-    game::CoreStats preview = c.base;
-    if (m_cursor < 4) {
-        ++preview[static_cast<game::Core>(m_cursor)];
-    }
+    const game::CoreStats preview = m_cursor < 4 ? c.points.preview(static_cast<game::Core>(m_cursor)) : c.points.base();
     const game::Derived next = c.derivedWith(preview);
     for (int i = 0; i < game::kCoreCount; ++i) {
         const auto core = static_cast<game::Core>(i);
@@ -382,18 +379,18 @@ void Windows::drawStats(gamelib::draw::DrawList& list, const Shapes& shapes, con
         addIcon(list, shapes, Ui::StatIcon, {row.x + 38.0f, row.center().y - bounce}, 56.0f, static_cast<float>(i), 0.0f, ui_color::kWhite,
                 ui_color::kWhite);
         ui::text(list, game::coreName(core), row.x + 80.0f, row.y + 16.0f, {.size = 30.0f, .color = ui_color::kInk, .weight = 1.5f});
-        const int gearBonus = now.core[core] - c.base[core];
-        const std::string value = gearBonus > 0 ? std::format("{} (+{})", c.base[core], gearBonus) : std::to_string(c.base[core]);
+        const int gearBonus = now.core[core] - c.points.base()[core];
+        const std::string value = gearBonus > 0 ? std::format("{} (+{})", c.points.base()[core], gearBonus) : std::to_string(c.points.base()[core]);
         ui::text(list, value, row.right() - 90.0f, row.y + 14.0f - bounce, {.size = 32.0f, .color = ui_color::kInk, .weight = 1.8f, .align = Align::Right});
         // The "+" button.
-        const bool can = c.abilityPoints > 0;
+        const bool can = c.points.available() > 0;
         addUi(list, shapes, Ui::Button, {row.right() - 66.0f, row.y + 10.0f, 56.0f, 50.0f}, can ? srgb(0xFFD86A) : srgb(0xE8E0D0),
               ui_color::kGold, can ? (sel ? 1.0f : 0.0f) : 3.0f);
         ui::text(list, "+", row.right() - 38.0f, row.y + 8.0f, {.size = 40.0f, .color = can ? ui_color::kInk : ui_color::kSoftInk, .weight = 2.4f, .align = Align::Center});
         y += 78.0f;
     }
     const Rect autoBtn{x0, y + 6.0f, w, 62.0f};
-    ui::button(list, shapes, autoBtn, "auto-assign", m_cursor == 4, c.abilityPoints > 0);
+    ui::button(list, shapes, autoBtn, "auto-assign", m_cursor == 4, c.points.available() > 0);
     y += 92.0f;
 
     // Derived values with the preview of a point on the selected stat.
@@ -401,7 +398,7 @@ void Windows::drawStats(gamelib::draw::DrawList& list, const Shapes& shapes, con
         ui::text(list, name, lx, ly, {.size = 26.0f, .color = ui_color::kSoftInk, .weight = 1.3f});
         const std::string v = percent ? std::format("{}%", a) : ui::groupDigits(a);
         ui::text(list, v, lx + 300.0f, ly, {.size = 28.0f, .color = ui_color::kInk, .weight = 1.6f, .align = Align::Right});
-        if (b != a && c.abilityPoints > 0 && m_cursor < 4) {
+        if (b != a && c.points.available() > 0 && m_cursor < 4) {
             const std::string d = percent ? std::format("> {}%", b) : std::format("> {}", ui::groupDigits(b));
             ui::text(list, d, lx + 312.0f, ly, {.size = 24.0f, .color = ui_color::kGood, .weight = 1.6f});
         }
